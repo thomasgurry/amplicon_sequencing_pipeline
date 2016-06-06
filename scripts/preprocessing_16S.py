@@ -34,6 +34,16 @@ def trim_quality((fastq_in, fastq_out, ascii_encoding, quality_trim)):
     # Trims to desired quality level
     str1 = '/home/ubuntu/bin/usearch8 -fastq_filter ' + fastq_in + ' -fastq_truncqual ' + str(quality_trim) + ' -fastq_ascii ' + str(ascii_encoding) + ' -fastqout ' + fastq_out
     os.system(str1)
+    # Check for how many reads were thrown out
+    statinfoIN = os.stat(fastq_in)
+    input_filesize = float(statinfoIN.st_size)
+    statinfoOUT = os.stat(fastq_out)
+    output_filesize = float(statinfoOUT.st_size)
+    percent_thrown_out = 100*(1.0 - output_filesize / input_filesize)
+    print "[[ Quality trimming ]] Input file: " + fastq_in
+    print "[[ Quality trimming ]] Using ASCII base " + str(ascii_encoding) + ", truncated sequences at quality less than " + str(quality_trim)
+    print "[[ Quality trimming ]] Threw out " + str(percent_thrown_out) + " % of reads."
+    print "[[ Quality trimming ]] Complete."
     return None
 
 
@@ -97,9 +107,9 @@ def trim_length_fastq((fastq_in, fastq_out, length, ascii_encoding)):
     input_filesize = float(statinfoIN.st_size)
     statinfoOUT = os.stat(fastq_out)
     output_filesize = float(statinfoOUT.st_size)
-    percent_thrown_out = 100*(output_filesize / input_filesize)
+    percent_thrown_out = 100*(1.0 - output_filesize / input_filesize)
     print "[[ Length trimming ]] Input file: " + fastq_in
-    print "[[ Length trimming ]] Trimmed sequences with length less than " + str(length) + " and maximum expected error of 0.25."
+    print "[[ Length trimming ]] Trimmed sequences with length less than " + str(length)
     print "[[ Length trimming ]] Threw out " + str(percent_thrown_out) + " % of reads."
     print "[[ Length trimming ]] Complete."
     return None
@@ -130,7 +140,6 @@ def split_by_barcodes_FASTA((fasta_in, fasta_out, barcodes_map, mode)):
     os.system('python ~/scripts/2.split_by_barcodes.py -f ' + fasta_in + ' -b ' + barcodes_map + ' -B tab -d 1 --mode ' + mode + ' -o ' + fasta_out)
     return None
 
-
 def replace_seqIDs_for_demultiplexed_files((fastq_in, fastq_out, sampleID)):
     # Relabels all seqIDs with the provided sample ID.  For use when a single raw file has reads only for one sample and this is known.
     outfile = open(fastq_out, 'w')
@@ -140,6 +149,19 @@ def replace_seqIDs_for_demultiplexed_files((fastq_in, fastq_out, sampleID)):
         sid = record[0][1:] # id
         seq = record[1] # sequence
         record[0] = '@' + sampleID + '_' + str(seq_counter)
+        outfile.write('\n'.join(record) + '\n')
+        seq_counter += 1
+    outfile.close()
+
+def replace_seqIDs_for_demultiplexed_files_fasta((fasta_in, fasta_out, sampleID)):
+    # Relabels all seqIDs with the provided sample ID.  For use when a single raw file has reads only for one sample and this is known.
+    outfile = open(fasta_out, 'w')
+    iter_fst = util.iter_fst
+    seq_counter = 0
+    for record in iter_fst(fasta_in):
+        sid = record[0][1:] # id
+        seq = record[1] # sequence
+        record[0] = '>' + sampleID + '_' + str(seq_counter)
         outfile.write('\n'.join(record) + '\n')
         seq_counter += 1
     outfile.close()

@@ -293,7 +293,10 @@ elif (options.multiple_raw_files == 'True'):
     pool = mp.Pool(cpu_count)
     filenames = split_filenames
     newfilenames = [f + '.sb' for f in filenames]
-    pool.map(OTU.replace_seqIDs_for_demultiplexed_files, zip(filenames, newfilenames, sampleID_map))
+    if raw_file_type == "FASTQ":
+        pool.map(OTU.replace_seqIDs_for_demultiplexed_files, zip(filenames, newfilenames, sampleID_map))
+    elif raw_file_type == "FASTA":
+        pool.map(OTU.replace_seqIDs_for_demultiplexed_files_fasta, zip(filenames, newfilenames, sampleID_map))
     pool.close()
     pool.join()
     split_filenames = [f + '.sb' for f in split_filenames]
