@@ -157,4 +157,13 @@ def reads_thrown_out_at_each_step(raw_split_filenames, output_file):
             pass
 
 
-        
+def remove_empty_files(filenames):
+    # Reads size of each file in filenames and returns a list without any empty files
+    # Edit added by Claire Duvalet on 6/6/2016
+    keepfiles = []
+    for f in filenames:
+        if os.stat(f).st_size != 0:
+            keepfiles.append(f)
+    if len(keepfiles) != len(filenames):
+        print('WARNING: found {} empty files'.format(len(filenames) - len(keepfiles)))
+    return keepfiles
