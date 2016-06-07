@@ -166,4 +166,5 @@ def remove_empty_files(filenames):
             keepfiles.append(f)
     if len(keepfiles) != len(filenames):
         print('WARNING: found {} empty files'.format(len(filenames) - len(keepfiles)))
+        warning("found {} empty files".format(len(filenames) - len(keepfiles)))
     return keepfiles
