@@ -37,6 +37,7 @@ parser.add_option("-m", "--multiple_files", dest="multiple_raw_files", default='
 if( not options.input_dir ):
     parser.error("No data directory specified.")
 
+
 # Parse summary file
 summary_file = options.input_dir + '/summary_file.txt'
 summary_obj = SummaryParser(summary_file)
@@ -288,6 +289,7 @@ if (options.split_by_barcodes == 'False' and options.multiple_raw_files == 'Fals
     pool.close()
     pool.join()
     split_filenames = [f + '.sb' for f in split_filenames] 
+    split_filenames = QC.remove_empty_files(split_filenames)
 elif (options.multiple_raw_files == 'True'):
     # If multiple raw files each corresponding to a sample are provided, rename sequence IDs according to the raw file summary sample IDs provided
     pool = mp.Pool(cpu_count)
@@ -351,6 +353,7 @@ elif amplicon_type == 'ITS':
 
 pool = mp.Pool(cpu_count)
 filenames = split_filenames
+filenames = QC.remove_empty_files(filenames)
 newfilenames = [f + '.lt' for f in filenames]
 length_vect = [length]*len(filenames)
 ascii_vect = [ascii_encoding]*len(filenames)
