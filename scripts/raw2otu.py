@@ -328,16 +328,17 @@ if (raw_file_type == "FASTQ"):
             quality = summary_obj.attribute_value_ITS['QUALITY_TRIM']
         except:
             quality = 25
-    pool = mp.Pool(cpu_count)
-    filenames = split_filenames
-    newfilenames = [f + '.qt' for f in filenames]
-    ascii_vect = [ascii_encoding]*len(filenames)
-    quality_vect = [quality]*len(filenames)
-    pool.map(OTU.trim_quality, zip(filenames, newfilenames, ascii_vect, quality_vect))
-    pool.close()
-    pool.join()
-    split_filenames = [f + '.qt' for f in split_filenames] 
-    split_filenames = QC.remove_empty_files(split_filenames, step='quality trim')
+    if quality != 'None':
+        pool = mp.Pool(cpu_count)
+        filenames = split_filenames
+        newfilenames = [f + '.qt' for f in filenames]
+        ascii_vect = [ascii_encoding]*len(filenames)
+        quality_vect = [quality]*len(filenames)
+        pool.map(OTU.trim_quality, zip(filenames, newfilenames, ascii_vect, quality_vect))
+        pool.close()
+        pool.join()
+        split_filenames = [f + '.qt' for f in split_filenames] 
+        split_filenames = QC.remove_empty_files(split_filenames, step='quality trim')
 
 # Step 2.4 - trim to uniform length
 if amplicon_type == '16S':
