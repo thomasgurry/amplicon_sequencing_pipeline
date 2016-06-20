@@ -20,7 +20,7 @@ This document describes the process of going from raw 16S or ITS data to process
 \subsection{Raw FASTQ files}
 FASTQ files have different ASCII encodings for the quality characters.  It is often ASCII base 33 or ASCII base 64.  Check this using {\tt usearch -fastq\_chars yourFASTQfile.fastq} and specify the encoding in the summary file.  If left unspecified, it will default to base 33.
 
-The pipeline is designed to take a single FASTQ file in which all reads have been concatenated.    In the event that the reads have already been demultiplexed and each individual FASTQ file corresponds to a given sample, instead of specifying the FASTQ file (cf. 'Case 3' below).  The pipeline will split them for parallelization and recombine them for OTU calling.
+The pipeline is designed to take a single FASTQ file, multiple FASTQ files in which each file corresponds to one sample, a single FASTA file with barcodes and primers removed, and multiple FASTA files in which each file corresponds to one sample. FASTQ files may contain primers and/or barcodes or may have them removed. All configurations and processing requirements are specified through the summary file.
 
 \subsection{Metadata}
 Metadata is uploaded as is to S3 for storage with the raw data.  Ideally, we want to capture as much of the metadata as possible in the database and into file objects describing the data (e.g. OTU tables in BIOM format).  We can produce a file with three columns: {\tt sample\_ID}, {\tt disease\_label} and {\tt keywords}.  {\tt sample\_ID} corresponds to the name ID of the sample as is listed in the OTU table.  {\tt disease\_label} is a specific label used for each subject and can be more general than disease.  Note that none of these metadata are currently used by the pipeline, so you can process your data without knowing anything other than the sample barcode.  This format is merely recommended to facilitate standardized storage and of course necessary for downstream analysis.
@@ -33,7 +33,7 @@ The order in which items are listed between the lines {\tt \#16S\_start} and {\t
 Note that any white space in the summary file examples below corresponds to a single tab character.
 
 \subsubsection{List of 16S and ITS attributes}
-See the table below.
+See the table at the end of this document.
 \begin{table}[h!]
   \begin{center}
     \label{tab:table1}
@@ -45,19 +45,28 @@ See the table below.
       \hline
       {\tt RAW\_FASTA\_FILE} & Raw FASTA file name/path if raw data is in FASTA format \\
       \hline
+      {\tt RAW\_FASTQ\_FILES}
        & For demultiplexed datasets where samples are separated \\
-      {\tt RAW\_FASTQ\_FILES} & into separate FASTQ files.  Filename of two column file \\
+       & into separate FASTQ files.  Filename of two column file \\
        & containing FASTQ filenames in first column and sample IDs \\
        & in the second column. \\
        \hline
-       {\tt ASCII\_ENCODING} & ASCII quality encoding in FASTQ.  Supports either \\
+      {\tt RAW\_FASTA\_FILES} 
+       & For demultiplexed datasets where samples are separated \\
+       & into separate FASTA files.  Filename of two column file \\
+       & containing FASTA filenames in first column and sample IDs \\
+       & in the second column. \\
+       \hline
+      {\tt ASCII\_ENCODING} & ASCII quality encoding in FASTQ.  Supports either \\
        & 'ASCII\_BASE\_33'  or 'ASCII\_BASE\_64'.  Set to 33 if unspecified. \\
        \hline
-       {\tt PRIMERS\_FILE} & Filename/path to primers file. \\
+      {\tt PRIMERS\_FILE} & Filename/path to primers file. \\
+       & {\tt required}: If primers have already been removed, specify 'None'. \\
        \hline
-       {\tt BARCODES\_MAP} & Filename/path to barcodes map file. \\
+      {\tt BARCODES\_MAP} & Filename/path to barcodes map file. \\
+       & {\tt required}: If barcodes have already been removed, specify 'None'. \\
        \hline
-       {\tt BARCODES\_MODE} & '1' = barcodes in sequence ID, \\
+      {\tt BARCODES\_MODE} & '1' = barcodes in sequence ID, \\
        &  '2' = barcodes in sequences themselves. \\
        \hline
        {\tt BARCODES\_SEPARATOR} & Separator character.  See description in Case 2 below. \\
@@ -65,14 +74,20 @@ See the table below.
        {\tt METADATA\_FILE} & Filename/path to metadata file. \\
        \hline
        {\tt PROCESSED} & True/False flag for whether data have already been processed. \\
-        & Set to 'False' for processing to proceed. \\
+        & {\tt required}: Set to 'False' for processing to proceed. \\
         \hline
         {\tt TRIM\_LENGTH} & Length to which all sequences should be trimmed.  \\
         & Defaults to 101 if unspecified. \\
         \hline
         {\tt QUALITY\_TRIM} & Minimum quality score allowed.  \\
-        & Any bases below this will be trimmed.  Defaults to 25 if unspecified. \\
+        & Sequences are truncated at the first base having quality \\
+        & score < {\tt value}.  Defaults to 25 if unspecified. \\
         \hline
+		{\tt MAX\_ERRORS} & Maximum expected errors allowed. \\
+		& After length trimming, sequences with more than {\tt MAX\_ERRORS} \\
+		& expected errors are discarded. If not specified or if a {\tt TRIM\_QUALITY} value \\
+		& is specified, defaults to quality trimming behavior, above. \\
+		\hline
         {\tt MIN\_COUNT} & Minimum sequence count in dereplication across \\
         & all samples.  Defaults to 10 if unspecified (i.e. sequences with fewer than  \\
         & 10 occurrences in the entire dataset will not be considered downstream). \\
@@ -83,13 +98,13 @@ See the table below.
 	{\tt RDP\_CUTOFF} & Desired probability cut-off for Ribosomal Database Project \\
 	& assignments.  Assignments at each taxonomic level will be evaluated and \\
 	& those with a lower probability than this cutoff will be \\
-	& labeled as unidentified. \\
+	& labeled as unidentified. Defaults to 0.5 if unspecified. \\
 	\hline
 	{\tt GG\_ALIGN} & Specific to 16S sequences.  True/False flag for whether \\
-	& GreenGenes alignments are desired.  Set to 'True' if unspecified. \\
+	& GreenGenes alignments are desired.  Defaults to 'True' if unspecified. \\
 	\hline
 	{\tt UNITE\_ALIGN} & Specific to ITS sequences.  True/False flag for whether \\
-	& UNITE alignments are desired.  Set to 'True' if unspecified. \\
+	& UNITE alignments are desired.  Defaults to 'True' if unspecified. \\
 	\hline
     \end{tabular}
   \end{center}
@@ -115,7 +130,7 @@ PROCESSED		False
 Note that you must also specify the place where barcodes are to be found, i.e. either in the "$>$" sequence ID lines (mode 1) or in the sequences themselves (mode 2).  The {\tt PROCESSED} flag tells the processing instance that the dataset needs to be processed into OTU tables.
 
 \subsubsection{Case 2: raw FASTQ file of ITS sequences, primers and barcodes have been removed}
-In the case where the 'raw' data has actually had primers and barcodes previously removed, the sample IDs must be listed in the sequence ID lines of the FASTQ file.  When the pipeline removes barcodes itself and replaces them with sample IDs, individual sequence reads for a given {\tt sampleID} will be annotated as {\tt sampleID;1, sampleID;2}, etc., where we note here that the {\tt BARCODES\_SEPARATOR} is ';'.  However, in a dataset where the barcodes have previously been removed, you will have to look into the FASTQ file to check the 'separator' character.  Your summary file would look something like this:
+In the case where the 'raw' data has already had primers and barcodes removed (but is not yet de-multiplexed, i.e. all samples are still in the same FASTQ file), the sample IDs must be listed in the sequence ID lines of the FASTQ file.  When the pipeline removes barcodes itself and replaces them with sample IDs, individual sequence reads for a given {\tt sampleID} will be annotated as {\tt sampleID;1, sampleID;2}, etc., where we note here that the {\tt BARCODES\_SEPARATOR} is ';'.  However, in a dataset where the barcodes have previously been removed, you will have to look into the FASTQ file to check the 'separator' character.  Your summary file would look something like this:
 
 \begin{verbatim}
 DATASET_ID	myDataset
@@ -148,22 +163,68 @@ PROCESSED		False
 #16S_end
 \end{verbatim}
 
+And your {\tt fastq\_filemap.txt} file would look something like this (note that white spaces in the following example correspond to a single tab character):
+
+\begin{verbatim}
+SRR10001.fastq	S1
+SRR10002.fastq	S2
+SRR10003.fastq	S3
+SRR10004.fastq	S4
+\end{verbatim}
 
 \section{Running the pipeline}
 Once you have placed all relevant files and folders, including the summary file into a single folder, you can call the script {\tt Master.py} taking the path to this folder as input.  {\tt Master.py} which will parse the summary file and launch the appropriate scripts to process your request.  Suppose the path to the folder containing the dataset is {\tt /home/ubuntu/dataset\_folder}, and contains a summary file where you specified the dataset ID as 'myDataset', you would run the following command from anywhere:
 \begin{verbatim}
+python ~/scripts/Master.py -i /home/ubuntu/dataset_folder
+\end{verbatim}
+If you prefer to run the program in the background, you can add an {\tt \&} to the end of the command. Using {\tt nohup} ensures that any hangups do not interrupt the processing:
+\begin{verbatim}
 nohup python ~/scripts/Master.py -i /home/ubuntu/dataset_folder &
 \end{verbatim}
-Processing happens in a folder within the {\tt proc} folder, with path {\tt /home/ubuntu/proc/myDataset\_proc\_16S} or {\tt /home/ubuntu/proc/myDataset\_proc\_ITS}, depending on the amplicon being analyzed.  Results are put in {\tt /home/ubuntu/processing\_results/}.
+Processing happens in a folder within the {\tt proc} folder, with path {\tt /home/ubuntu/proc/myDataset\_proc\_16S} or {\tt /home/ubuntu/proc/myDataset\_proc\_ITS}, depending on the amplicon being analyzed.  Final results are put in {\tt /home/ubuntu/processing\_results/}. Log files are put in the {\tt /home/ubuntu/logs} folder, with two files created for each dataset: {\tt stderr\_datasetID.log} for error and warning messages and {\tt stdout\_datasetID.log} for various progress messages.
 
-\section{Pipeline description}
+\section{Pipeline output files and directories}
+The pipeline outputs different OTU tables and corresponding representative sequences. All final outputs can be found in the {\tt processing\_results} folder, under a sub-directory labeled {\tt myDataset\_results}. Files in this directory are labeled systematically, usually with the format {\tt myDataset.file\_description.otu\_similarity.file\_type}. 
+
+Files in the top results directory are as follows:
+\begin{itemize}
+	\item {\tt myDataset.otu\_seqs.N.fasta}: FASTA file with the representative sequences for the denovo OTUs, clustered at N\%.
+	\item {\tt myDataset.otu\_table.N.denovo}: OTU table with N\% denovo OTUs labeled {\tt denovo1}, {\tt denovo2}, ... in the rows and samples in the columns.
+	\item {\tt myDataset.otu\_table.N.denovo\_oligotypes}: OTU table with N\% denovo OTUs separated into unique oligotypes. Each OTU is labeled {\tt denovo1.1}, {\tt denovo1.2}, {\tt denovo2.1}, {\tt denovo2.2}, {\tt denovo2.3}, etc. The first number corresponds to the parent denovo OTU number; the second is the oligotype number. Oligotypes are calculated as each unique sequence within an OTU cluster.
+	\item {\tt myDataset.raw\_dereplicated.fasta}: FASTA file with all unique sequences in the dataset. Only sequences which appear more times than the {\tt MIN\_COUNT} specified in the summary file are included (default value for {\tt MIN\_COUNT} is 10).
+	\item {\tt summary\_file.txt}: Updated summary file containing original processing request and resulting file names.
+\end{itemize}
+
+Within each dataset's {\tt processing\_results} directory, 3 sub-directories are created:
 \subsection{Quality control}
 Within the results folder, there is a subfolder called {\tt quality\_control}, which contains various plots diagnostic of dataset quality.  Currently, the pipeline outputs:
 \begin{itemize}
 	\item Histogram showing distribution of read lengths, taken from the first 100,000 reads in the raw FASTQ file.
 	\item Bar chart showing number of reads per sample.
-	\item File showing percentage of reads thrown out at each processing step ({\tt processing\_summary.txt}).
+	\item File showing percentage of reads thrown out at each processing step 
+	({\tt processing\_summary.txt}).
 \end{itemize}
+
+\subsection{RDP}
+This folder contains the RDP-assigned OTU table. It has one file:
+\begin{itemize}
+	\item {\tt myDataset.otu\_table.N.denovo.rdp\_assigned}: OTU table with denovo OTUs assigned Latin names with RDP. OTUs are in rows and samples are in columns. OTU names are of the format: \begin{verbatim}
+ k__kingdom;p__phylum;c__class;o__order;f__family;g__genus;s__species;
+ d__denovoID
+\end{verbatim} where the denovoID corresponds to the respective sequence in {\tt ../myDataset.otu\_seqs.N.fasta}.
+\end{itemize}
+
+\subsection{GG}
+This folder contains the Green Genes-assigned OTU table. It has multiple files, which are described further in the following section.
+\begin{itemize}
+	\item {myDataset.otu\_table.N.gg.consensusM}: closed-reference OTU table with dereplicated sequences mapped to Green Genes using {\tt usearch}. OTUs are in rows and samples are in columns. OTU names are of the format:
+\begin{verbatim}
+ k__kingdom;p__phylum;c__class;o__order;f__family;g__genus;s__species;
+ d__derepID
+\end{verbatim} where the derepID corresponds to the sequence in {\tt ../myDataset.raw\_dereplicated.fasta} with the same ID number.
+\end{itemize}
+
+\section{Description of pipeline OTU tables}
 
 \subsection{OTU calling}
 The pipeline produces various OTU tables.  All tables are constructed from the set of raw dereplicated reads.  These are a set of reads in FASTA format that appear in the file {\tt datasetID.raw\_dereplicated.fasta} and correspond to the set of unique sequences present in the raw data.  
@@ -176,25 +237,24 @@ The pipeline produces various OTU tables.  All tables are constructed from the s
 
 
 \subsubsection{\textit{de novo} OTU tables}
-The dereplicated reads are clustered to within the specified sequence similarity percentage cut-off ({\tt OTU\_SIMILARITY}, default: 97) using {\tt usearch}.  Individual reads are assigned either as the OTU centroid or as a match.  Centroids are labeled as 'OTU\_ID.0' and matches count from 'OTU\_ID.1' onwards.  These are separate oligotypes within the OTU 'OTU\_ID'.  All oligotype counts are then collapsed to their respective OTU, resulting in a fully \textit{de novo} OTU table which can be found in the filename {\tt datasetID.otu\_table.*.denovo} where '{\tt *}' gets replaced by the OTU similarity cut-off.
+The dereplicated reads are clustered to within the specified sequence similarity percentage cut-off ({\tt OTU\_SIMILARITY}, default: 97) using {\tt usearch}.  Individual reads are assigned either as the OTU centroid or as a match. Centroids are labeled as 'OTU\_ID.0' and matches count from 'OTU\_ID.1' onwards.  These are separate oligotypes within the OTU 'OTU\_ID'. All oligotype counts are then collapsed to their respective OTU, resulting in a fully \textit{de novo} OTU table which can be found in the filename {\tt datasetID.otu\_table.*.denovo} where '{\tt *}' gets replaced by the OTU similarity cut-off.
 
 \subsubsection{Closed-reference OTU table}
-There are two types of database-referencing that are outputed from the pipeline by default.  The first is assignments from the Ribosomal Database Project (RDP), which returns probabilistic assignments.  The default probability cut-off below which an assignment is labeled as unidentified at a given taxonomic level is 0.8, but this can be set using a summary file parameter {\tt RDP\_CUTOFF}.  This OTU table can be found in the results sub-folder called 'RDP'.
+There are two types of database-referencing that are outputed from the pipeline by default.  The first is assignments from the Ribosomal Database Project (RDP), which returns probabilistic assignments.  The default probability cut-off below which an assignment is labeled as unidentified at a given taxonomic level is 0.5, but this can be set using a summary file parameter {\tt RDP\_CUTOFF}.  This OTU table can be found in the results sub-folder called 'RDP'.
 
 The dereplicated reads are also aligned to a standard database (GreenGenes in the case of 16S sequences and UNITE in the case of ITS sequences).  In the case of GreenGenes, the database is determined based on the specified OTU similarity cut-off: e.g. {\tt 97\_otus.fasta} for {\tt OTU\_SIMILARITY} set to 97).  The alignment is performed using {\tt usearch}, and considers the top 10 hits.  Consensus assignments are then produced for the top 1, top 3, top 5 and top 10 hits (where a taxonomic level is only assigned a latin name if the top N hits from GreenGenes agree), and the corresponding OTU tables are output.  Thus, the OTU table called {\tt datasetID.otu\_table.*.gg.consensus10} contains latin names which are formed from a minimum consensus of the top 10 hits for each taxonomic level, where '{\tt *}' gets replaced by the OTU similarity cut-off.  Levels are left unidentified (e.g. '{\tt s\_\_}') if the consensus requirement is not met.  
 
 Note that the database referencing process is one of the slower steps in the pipeline, so if you only care about RDP, you can skip the GreenGenes assignments steps by setting the parameter {\tt GG\_ALIGN} to {\tt False} in the summary file.  Similarly, for ITS sequences, you can skip the UNITE assignments steps by setting the parameter {\tt UNITE\_ALIGN} to {\tt False}.
 
 \subsubsection{Open-reference OTU table}
+{\tt DEPRECATED:} The pipeline no longer produces open-reference OTUs. 
+
 If any reads in the dereplicated sequences do not align to GreenGenes/UNITE to within the specified similarity cut-off, they are clustered with the desired similarity cut-off using {\tt usearch}, and appended to the GreenGenes/UNITE closed-reference table to produce a full, open-reference OTU table (which combines GreenGenes-referenced and \textit{de novo} OTUs) at the desired similarity cut-off, with filename {\tt datasetID.otu\_table.gg.*.open\_ref}.
 
 \subsubsection{Oligotypes}
 The OTU calling process automatically assigns separate IDs to unique sequences within OTUs (termed 'oligotypes' by some).  These offer a greater level of granularity.  For example, if sequences A, B and C are all the same OTU, called OTU1 (and the centroid is sequence A), these would be relabeled 'OTU1.0', 'OTU1.1' and 'OTU1.2'.
 
-There are currently two such tables output: the full \textit{de novo} oligotype table (where sequences are labeled according to a fully \textit{de novo} OTU clustering process) - {\tt datasetID.oligotype\_table.classic} - and the reduced oligotype table which only describes those sequences which do not map to GreenGenes - 
-
-
-{\tt datasetID.denovo\_oligotype\_table.classic}.
+There is currently one such table output: the full \textit{de novo} oligotype table (where sequences are labeled according to a fully \textit{de novo} OTU clustering process) - \\{\tt myDataset.otu\_table.N.denovo\_oligotypes}
 
 \subsection{Taxon abundances and diversities}
 ...
