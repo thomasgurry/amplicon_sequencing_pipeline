@@ -289,7 +289,7 @@ if (options.split_by_barcodes == 'False' and options.multiple_raw_files == 'Fals
     pool.close()
     pool.join()
     split_filenames = [f + '.sb' for f in split_filenames] 
-    split_filenames = QC.remove_empty_files(split_filenames)
+    split_filenames = QC.remove_empty_files(split_filenames, step='split by barcodes')
 elif (options.multiple_raw_files == 'True'):
     # If multiple raw files each corresponding to a sample are provided, rename sequence IDs according to the raw file summary sample IDs provided
     pool = mp.Pool(cpu_count)
@@ -302,7 +302,7 @@ elif (options.multiple_raw_files == 'True'):
     pool.close()
     pool.join()
     split_filenames = [f + '.sb' for f in split_filenames]
-    split_filenames = QC.remove_empty_files(split_filenames)
+    split_filenames = QC.remove_empty_files(split_filenames, step='split by barcodes for multiplex files (replacing seqIDs with sampleID)')
 
 # Step 2.2 - remove primers
 if (options.primers_removed == 'False'):
@@ -314,30 +314,43 @@ if (options.primers_removed == 'False'):
     pool.close()
     pool.join()
     split_filenames = [f + '.pt' for f in split_filenames] 
-    split_filenames = QC.remove_empty_files(split_filenames)
+    split_filenames = QC.remove_empty_files(split_filenames, step='remove primers')
 
 # Step 2.3 - trim with quality filter
 if (raw_file_type == "FASTQ"):
+    trim_type = 'truncqual'
     if amplicon_type == '16S':
         try:
             quality = summary_obj.attribute_value_16S['QUALITY_TRIM']
         except:
-            quality = 25
+            try:
+                maxee = summary_obj.attribute_value_16S['MAX_ERRORS']
+                trim_type = 'maxee'
+            except:
+                quality = 25
     elif amplicon_type == 'ITS':
         try:
             quality = summary_obj.attribute_value_ITS['QUALITY_TRIM']
         except:
-            quality = 25
-    pool = mp.Pool(cpu_count)
-    filenames = split_filenames
-    newfilenames = [f + '.qt' for f in filenames]
-    ascii_vect = [ascii_encoding]*len(filenames)
-    quality_vect = [quality]*len(filenames)
-    pool.map(OTU.trim_quality, zip(filenames, newfilenames, ascii_vect, quality_vect))
-    pool.close()
-    pool.join()
-    split_filenames = [f + '.qt' for f in split_filenames] 
-    split_filenames = QC.remove_empty_files(split_filenames)
+            try:
+                # Note: if max errors is specified, quality filtering is performed
+                # after length trimming
+                maxee = summary_obj.attribute_value_ITS['MAX_ERRORS']
+                trim_type = 'maxee'
+            except:
+                quality = 25
+
+    if trim_type != 'maxee' and quality != 'None':
+        pool = mp.Pool(cpu_count)
+        filenames = split_filenames
+        newfilenames = [f + '.qt' for f in filenames]
+        ascii_vect = [ascii_encoding]*len(filenames)
+        quality_vect = [quality]*len(filenames)
+        pool.map(OTU.trim_quality, zip(filenames, newfilenames, ascii_vect, quality_vect))
+        pool.close()
+        pool.join()
+        split_filenames = [f + '.qt' for f in split_filenames] 
+        split_filenames = QC.remove_empty_files(split_filenames, step='quality trim by truncation')
 
 # Step 2.4 - trim to uniform length
 if amplicon_type == '16S':
@@ -363,13 +376,28 @@ if (raw_file_type == "FASTQ"):
     pool.close()
     pool.join()
     split_filenames = [f + '.lt' for f in split_filenames] 
-    split_filenames = QC.remove_empty_files(split_filenames)
+    split_filenames = QC.remove_empty_files(split_filenames, step='length trim')
+
+    # If quality filtering by max expected errors was specified, do the quality
+    # filtering *after* length trimming
+    if trim_type == 'maxee' and maxee != 'None':
+        pool = mp.Pool(cpu_count)
+        filenames = split_filenames
+        newfilenames = [f + '.qt' for f in filenames]
+        ascii_vect = [ascii_encoding]*len(filenames)
+        maxee_vect = [maxee]*len(filenames)
+        pool.map(OTU.trim_quality_by_expected_errors, zip(filenames, newfilenames, ascii_vect, maxee_vect))
+        pool.close()
+        pool.join()
+        split_filenames = [f + '.qt' for f in split_filenames] 
+        split_filenames = QC.remove_empty_files(split_filenames, step='quality filtering by expected errors')
+
 else:
     pool.map(OTU.trim_length_fasta, zip(filenames, newfilenames, length_vect))
     pool.close()
     pool.join()
     split_filenames = [f + '.lt' for f in split_filenames] 
-    split_filenames = QC.remove_empty_files(split_filenames)
+    split_filenames = QC.remove_empty_files(split_filenames, step='length trim')
 
 # Step 2.5 - convert to FASTA format
 if (raw_file_type == "FASTQ"):

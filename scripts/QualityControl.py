@@ -5,11 +5,12 @@ OVERVIEW:
 Python module for quality control of datasets prior to preprocessing.
 
 """
-
+from __future__ import print_function
 import os
 import util
 import numpy as np
 import matplotlib
+import sys
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import Formatting as frmt
@@ -156,15 +157,18 @@ def reads_thrown_out_at_each_step(raw_split_filenames, output_file):
         except:
             pass
 
+def warning(*objs):
+    print("WARNING: ", *objs, file=sys.stderr)
 
-def remove_empty_files(filenames):
+def remove_empty_files(filenames, step=''):
     # Reads size of each file in filenames and returns a list without any empty files
     # Edit added by Claire Duvalet on 6/6/2016
+    # step is a string that is passed to the stderr statement indicating point at which 
+    # empty files were found. E.g. "barcodes trimming"
     keepfiles = []
     for f in filenames:
         if os.stat(f).st_size != 0:
             keepfiles.append(f)
     if len(keepfiles) != len(filenames):
-        print('WARNING: found {} empty files'.format(len(filenames) - len(keepfiles)))
-        warning("found {} empty files".format(len(filenames) - len(keepfiles)))
+        warning("found {} empty files after {} step".format(len(filenames) - len(keepfiles), step))
     return keepfiles

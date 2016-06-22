@@ -46,6 +46,22 @@ def trim_quality((fastq_in, fastq_out, ascii_encoding, quality_trim)):
     print "[[ Quality trimming ]] Complete."
     return None
 
+def trim_quality_by_expected_errors((fastq_in, fastq_out, ascii_encoding, maxee)):
+    # Discards reads with more than maxee expected errors.
+    str1 = '/home/ubuntu/bin/usearch8 -fastq_filter ' + fastq_in + ' -fastq_maxee ' + str(maxee) + ' -fastq_ascii ' + str(ascii_encoding) + ' -fastqout ' + fastq_out
+    os.system(str1)
+    # Check for how many reads were thrown out
+    statinfoIN = os.stat(fastq_in)
+    input_filesize = float(statinfoIN.st_size)
+    statinfoOUT = os.stat(fastq_out)
+    output_filesize = float(statinfoOUT.st_size)
+    percent_thrown_out = 100*(1.0 - output_filesize / input_filesize)
+    print "[[ Quality trimming ]] Input file: " + fastq_in
+    print "[[ Quality trimming ]] Using ASCII base " + str(ascii_encoding) + ", discarded reads with more than " + str(maxee) + " expected errors"
+    print "[[ Quality trimming ]] Threw out " + str(percent_thrown_out) + " % of reads."
+    print "[[ Quality trimming ]] Complete."
+    return None
+    
 
 def trim_quality_deprecated((fastq_in, fastq_out, ascii_encoding)):
     # Finds maximum Q-score cut-off where 95% of reads are over 200 bases, if possible.  If not, selects Q=5 and returns a warning.
