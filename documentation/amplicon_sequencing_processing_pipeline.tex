@@ -82,6 +82,9 @@ See the table at the end of this document.
         {\tt QUALITY\_TRIM} & Minimum quality score allowed.  \\
         & Sequences are truncated at the first base having quality \\
         & score less than {\tt value}.  Defaults to 25 if unspecified. \\
+        & If set to {\tt None}, no quality filtering or trimming will be performed. \\
+        & If both {\tt QUALITY\_TRIM} and {\tt MAX\_ERRORS} are included in summary file, \\
+        & {\tt MAX\_ERRORS} will be ignored (even if {\tt QUALITY\_TRIM = None}). \\
         \hline
 		{\tt MAX\_ERRORS} & Maximum expected errors allowed. \\
 		& After length trimming, sequences with more than {\tt MAX\_ERRORS} \\
