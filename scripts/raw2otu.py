@@ -63,8 +63,8 @@ try:
     elif amplicon_type == 'ITS':
         metadata_file = summary_obj.attribute_value_ITS['METADATA_FILE']
 except:
-    metadata_file = None
-    warning("No metadata file found!!  This will cause problems downstream...")
+    metadata_file = "None"
+    #warning("No metadata file found!!  This will cause problems downstream...")
 
 # If no output directory specified, default to $home/proc/
 homedir = os.getenv("HOME")
@@ -673,7 +673,7 @@ except:
 os.system('cp ' + OTU_sequences_fasta + ' ' + dataset_folder + '/.')
 os.system('cp ' + fasta_dereplicated + ' ' + dataset_folder + '/.')
 
-if metadata_file is not None:
+if metadata_file != "None":
     os.system('cp ' + options.input_dir + '/' + metadata_file + ' ' + dataset_folder + '/.')
 
 # Put the summary file in the folder and change the summary file path to its new location
