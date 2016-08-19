@@ -340,6 +340,7 @@ def renumber_sequences(fasta_files, separator):
     for filename in fasta_files:
         sample_counts = update_numbers(filename, filename + '.tmp', sample_counts)
         os.system('mv ' + filename + '.tmp ' + filename)
+    print "[[ Renumbering sequences ]] Complete."
 
 
 def pull_counts(raw_sequence_filename, separator):
