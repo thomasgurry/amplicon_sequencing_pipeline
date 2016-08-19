@@ -56,6 +56,12 @@ elif(summary_obj.attribute_value_16S['PROCESSED'] == 'False'):
             flags = flags + ' -m True '
         except:
             flags = flags + ' -m False '
+    # Check if output directory is specified
+    try:
+        outdir = summary_obj.attribute_value_16S['OUTDIR'] 
+        flags = flags + ' -o ' + outdir
+    except:
+        pass
 
     # Check if primers have been removed
     if summary_obj.attribute_value_16S['PRIMERS_FILE'] == 'None':

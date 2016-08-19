@@ -71,7 +71,10 @@ homedir = os.getenv("HOME")
 if( not options.output_dir ):
     print("No output directory name specified.  Writing to " + homedir + "/proc/ by default.")
     options.output_dir = homedir + '/proc/' + dataset_ID + '_proc_' + amplicon_type
-
+else:
+    options.output_dir = options.output_dir + '/' + dataset_ID + '_proc_' + amplicon_type
+    print("Output directory specified. Writing to " + options.output_dir)
+    
 # Make a directory for the 16S processing results 
 working_directory = options.output_dir
 try:
@@ -244,8 +247,12 @@ else:
     sampleID_map = [line.split('\t')[1].rstrip('\n') for line in all_lines if len(line.strip('\n')) > 0]
     raw_filenames = [os.path.join(working_directory,line.split('\t')[0].split('/')[-1]) for line in all_lines if len(line.rstrip('\n')) > 0]
     for i in range(len(raw_filenames_orig)):
-        cmd_str = 'cp ' + raw_filenames_orig[i] + ' ' + raw_filenames[i]
-        os.system(cmd_str)
+        # If file has not already been copied, copy it to working directory
+        if not os.path.exists(raw_filenames[i]):
+            cmd_str = 'cp ' + raw_filenames_orig[i] + ' ' + raw_filenames[i]
+            os.system(cmd_str)
+        else:
+            print(raw_filenames[i] + ' already copied. Skipping.')
     split_filenames = raw_filenames
 
 
@@ -418,16 +425,9 @@ OTU.renumber_sequences(split_filenames, separator)
 
 
 # Step 3 - Recombine into a single fasta file
-if len(split_filenames)>1:
-    cat_str = ['cat']
-    for filename in split_filenames:
-        cat_str.append(filename)
-    cat_str = ' '.join(cat_str)
-    cat_str = cat_str + ' > ' + fasta_trimmed    
-    # Recombine
-    os.system(cat_str)
-else:
-    os.system('cp ' + split_filenames[0] + ' ' + fasta_trimmed)
+for filename in split_filenames:
+    os.system('cat ' + filename + ' >> ' + fasta_trimmed)
+
 
 
 # Dereplicate sequences into a list of uniques for clustering
