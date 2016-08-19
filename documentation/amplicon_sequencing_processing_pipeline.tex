@@ -109,6 +109,8 @@ See the table at the end of this document.
 	{\tt UNITE\_ALIGN} & Specific to ITS sequences.  True/False flag for whether \\
 	& UNITE alignments are desired.  Defaults to 'True' if unspecified. \\
 	\hline
+	{\tt OUTDIR} & Full path to processing directory. Defaults \\
+	& to {\tt /home/ubuntu/proc/} if not specified. \\
     \end{tabular}
   \end{center}
 \end{table}
@@ -184,7 +186,9 @@ If you prefer to run the program in the background, you can add an {\tt \&} to t
 \begin{verbatim}
 nohup python ~/scripts/Master.py -i /home/ubuntu/dataset_folder &
 \end{verbatim}
-Processing happens in a folder within the {\tt proc} folder, with path {\tt /home/ubuntu/proc/myDataset\_proc\_16S} or {\tt /home/ubuntu/proc/myDataset\_proc\_ITS}, depending on the amplicon being analyzed.  Final results are put in {\tt /home/ubuntu/processing\_results/}. Log files are put in the {\tt /home/ubuntu/logs} folder, with two files created for each dataset: {\tt stderr\_datasetID.log} for error and warning messages and {\tt stdout\_datasetID.log} for various progress messages.
+Processing happens in a folder within the {\tt proc} folder, with path {\tt /home/ubuntu/proc/ \\ myDataset\_proc\_16S} or {\tt /home/ubuntu/proc/myDataset\_proc\_ITS}, depending on the amplicon being analyzed.  Final results are put in {\tt /home/ubuntu/processing\_results/}. Log files are put in the {\tt /home/ubuntu/logs} folder, with two files created for each dataset: {\tt stderr\_datasetID.log} for error and warning messages and {\tt stdout\_datasetID.log} for various progress messages.
+
+\textbf{Please remove your files from the \~{}/proc folder once you have checked your processing results!} The \~{}/proc folder can easily fill up - it contains the original raw files are and additional copies corresponding to each processing step!
 
 \section{Pipeline output files and directories}
 The pipeline outputs different OTU tables and corresponding representative sequences. All final outputs can be found in the {\tt processing\_results} folder, under a sub-directory labeled {\tt myDataset\_results}. Files in this directory are labeled systematically, usually with the format {\tt myDataset.file\_description.otu\_similarity.file\_type}. 
