@@ -425,6 +425,9 @@ OTU.renumber_sequences(split_filenames, separator)
 
 
 # Step 3 - Recombine into a single fasta file
+# Since we'll be appending to fasta_trimmed file, need to clear it if it already exists
+if os.path.exists(fasta_trimmed):
+    os.system('rm ' + fasta_trimmed)
 for filename in split_filenames:
     os.system('cat ' + filename + ' >> ' + fasta_trimmed)
 
