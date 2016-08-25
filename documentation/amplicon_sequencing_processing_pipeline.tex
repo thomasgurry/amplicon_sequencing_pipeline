@@ -64,10 +64,13 @@ See the table at the end of this document.
        & {\tt required}: If primers have already been removed, specify 'None'. \\
        \hline
       {\tt BARCODES\_MAP} & Filename/path to barcodes map file. \\
+       & Tab-delimited file contains sampleIDs in first column \\
+       & and barcode sequences in second column.
        & {\tt required}: If barcodes have already been removed, specify 'None'. \\
        \hline
       {\tt BARCODES\_MODE} & '1' = barcodes in sequence ID, \\
        &  '2' = barcodes in sequences themselves. \\
+       & Required if {\tt BARCODES\_MAP} is not None.
        \hline
        {\tt BARCODES\_SEPARATOR} & Separator character.  See description in Case 2 below. \\
        \hline
