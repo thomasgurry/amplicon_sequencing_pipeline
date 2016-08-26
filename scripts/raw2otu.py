@@ -281,6 +281,10 @@ else:
                 print(revfiles_orig[i] + ' already copied. Skipping.')
         # Make directory for merge logs
         mergelog_dir = os.path.join(working_directory, 'merge_logs')
+        try:
+            os.mkdir(mergelog_dir)
+        except:
+            pass
 
 # Prepare for using parallel threads as a function of the number of CPUs
 cpu_count = mp.cpu_count()
@@ -292,7 +296,7 @@ if (raw_file_type == "FASTQ" and options.paired_end == "True"):
     fwd_filenames = split_filenames
     rev_filenames = revfiles_wdir
     merged_filenames = [i.split(fwd_suffix)[0] + '.merged.fastq' for i in fwd_filenames]
-    merge_logs = [os.path.join(mergelog_dir, i.split(fwd_suffix)[0] + '.log') for i in fwd_filenames]
+    merge_logs = [os.path.join(mergelog_dir, i.split('/')[-1].split(fwd_suffix)[0] + '.log') for i in fwd_filenames]
     pool.map(OTU.merge_reads, zip(fwd_filenames, rev_filenames, merged_filenames, merge_logs))
     pool.close()
     pool.join()
