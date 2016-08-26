@@ -56,13 +56,20 @@ elif(summary_obj.attribute_value_16S['PROCESSED'] == 'False'):
             flags = flags + ' -m True '
         except:
             flags = flags + ' -m False '
+    # Check if paired end reads need to be merged
+    try:
+        paired_ends = summary_obj.attribute_value_16S['MERGE_PAIRS']
+        flags = flags + ' -r ' + paired_ends
+    except:
+        pass
+
     # Check if output directory is specified
     try:
         outdir = summary_obj.attribute_value_16S['OUTDIR'] 
         flags = flags + ' -o ' + outdir
     except:
         pass
-
+        
     # Check if primers have been removed
     if summary_obj.attribute_value_16S['PRIMERS_FILE'] == 'None':
         flags = flags + ' -p True'
