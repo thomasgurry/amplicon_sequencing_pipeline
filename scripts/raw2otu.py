@@ -732,6 +732,8 @@ if amplicon_type == '16S':
         summary_obj.attribute_value_16S['METADATA_FILE'] = ntpath.basename(metadata_file)
     except:
         summary_obj.attribute_value_16S['METADATA_FILE'] = "None"
+    summary_obj.attribute_value_16S['PROCESSED'] = "True"
+    summary_obj.WriteSummaryFile()
 elif amplicon_type == 'ITS':
     summary_obj.attribute_value_ITS['OTU_TABLE_DENOVO'] = ntpath.basename(OTU_table_denovo)
     summary_obj.attribute_value_ITS['OTU_TABLE_RDP'] = ntpath.basename(OTU_table_denovo_RDP)
@@ -742,8 +744,8 @@ elif amplicon_type == 'ITS':
     except:
         summary_obj.attribute_value_ITS['METADATA_FILE'] = "None"
 
-summary_obj.attribute_value_ITS['PROCESSED'] = 'True'
-summary_obj.WriteSummaryFile()
+    summary_obj.attribute_value_ITS['PROCESSED'] = 'True'
+    summary_obj.WriteSummaryFile()
 
 
 # Transfer results 
