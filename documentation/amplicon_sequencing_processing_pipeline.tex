@@ -6,6 +6,7 @@
 \usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
 								% TeX will automatically convert eps --> pdf in pdflatex		
 \usepackage{amssymb}
+\usepackage{longtable}
 
 \title{Amplicon sequencing (16S and ITS) processing platform}
 \author{Thomas Gurry - thomasgurry@gmail.com}
@@ -22,6 +23,8 @@ FASTQ files have different ASCII encodings for the quality characters.  It is of
 
 The pipeline is designed to take a single FASTQ file, multiple FASTQ files in which each file corresponds to one sample, a single FASTA file with barcodes and primers removed, and multiple FASTA files in which each file corresponds to one sample. FASTQ files may contain primers and/or barcodes or may have them removed. All configurations and processing requirements are specified through the summary file.
 
+The pipeline can also take unmerged, paired-end reads. If you choose this option, we encourage you to check the results of merging, available in the {\tt merge\_logs} folder in the {\tt proc} directory with your dataset. See Case 4 in Chapter 2 for an example of how to run this.
+
 \subsection{Metadata}
 Metadata is uploaded as is to S3 for storage with the raw data.  Ideally, we want to capture as much of the metadata as possible in the database and into file objects describing the data (e.g. OTU tables in BIOM format).  We can produce a file with three columns: {\tt sample\_ID}, {\tt disease\_label} and {\tt keywords}.  {\tt sample\_ID} corresponds to the name ID of the sample as is listed in the OTU table.  {\tt disease\_label} is a specific label used for each subject and can be more general than disease.  Note that none of these metadata are currently used by the pipeline, so you can process your data without knowing anything other than the sample barcode.  This format is merely recommended to facilitate standardized storage and of course necessary for downstream analysis.
 
@@ -33,11 +36,8 @@ The order in which items are listed between the lines {\tt \#16S\_start} and {\t
 Note that any white space in the summary file examples below corresponds to a single tab character.
 
 \subsubsection{List of 16S and ITS attributes}
-See the table at the end of this document.
-\begin{table}[h!]
-  \begin{center}
-    \label{tab:table1}
-    \begin{tabular}{| c | c |}
+\begin{center}
+\begin{longtable}{| c | c |}
     \hline
       \textbf{Attribute} & \textbf{Description} \\
       \hline
@@ -64,14 +64,25 @@ See the table at the end of this document.
        & {\tt required}: If primers have already been removed, specify 'None'. \\
        \hline
       {\tt BARCODES\_MAP} & Filename/path to barcodes map file. \\
+       & Tab-delimited file contains sampleIDs in first column \\
+       & and barcode sequences in second column. \\
        & {\tt required}: If barcodes have already been removed, specify 'None'. \\
        \hline
       {\tt BARCODES\_MODE} & '1' = barcodes in sequence ID, \\
        &  '2' = barcodes in sequences themselves. \\
+       & Required if {\tt BARCODES\_MAP} is not None. \\
        \hline
        {\tt BARCODES\_SEPARATOR} & Separator character.  See description in Case 2 below. \\
        \hline
        {\tt METADATA\_FILE} & Filename/path to metadata file. \\
+       \hline
+       {\tt MERGE\_PAIRS} & If need to merge paired-end reads, set to "True". \\
+       \hline
+       {\tt FWD\_SUFFIX} & Filename suffix of files with forward reads. \\
+       & Should include filename extension. If not specified, defaults to {\tt \_1.fastq}\\
+       \hline
+       {\tt REV\_SUFFIX} & Filename suffix of files with reverse reads. \\
+       & Should include filename extension. If not specified, defaults to {\tt \_2.fastq}\\
        \hline
        {\tt PROCESSED} & True/False flag for whether data have already been processed. \\
         & {\tt required}: Set to 'False' for processing to proceed. \\
@@ -81,7 +92,10 @@ See the table at the end of this document.
         \hline
         {\tt QUALITY\_TRIM} & Minimum quality score allowed.  \\
         & Sequences are truncated at the first base having quality \\
-        & score < {\tt value}.  Defaults to 25 if unspecified. \\
+        & score less than {\tt value}.  Defaults to 25 if unspecified. \\
+        & If set to {\tt None}, no quality filtering or trimming will be performed. \\
+        & If both {\tt QUALITY\_TRIM} and {\tt MAX\_ERRORS} are included in summary file, \\
+        & {\tt MAX\_ERRORS} will be ignored (even if {\tt QUALITY\_TRIM = None}). \\
         \hline
 		{\tt MAX\_ERRORS} & Maximum expected errors allowed. \\
 		& After length trimming, sequences with more than {\tt MAX\_ERRORS} \\
@@ -106,10 +120,11 @@ See the table at the end of this document.
 	{\tt UNITE\_ALIGN} & Specific to ITS sequences.  True/False flag for whether \\
 	& UNITE alignments are desired.  Defaults to 'True' if unspecified. \\
 	\hline
-    \end{tabular}
-  \end{center}
-\end{table}
-
+	{\tt OUTDIR} & Full path to processing directory. Defaults \\
+	& to {\tt /home/ubuntu/proc/} if not specified. \\
+	\hline
+\end{longtable}
+\end{center}
 
 \subsubsection{Case 1: raw FASTQ file of 16S sequences, still includes primers and barcodes}
 The simplest case is if you have the following files: a raw FASTQ file; a file specifying the map between barcode sequences and IDs; and a file specifying the primers used.  Your summary file would look something like this:
@@ -118,16 +133,25 @@ The simplest case is if you have the following files: a raw FASTQ file; a file s
 DATASET_ID	myDataset
 
 #16S_start
-RAW_FASTQ_FILE		myData.fastq
-ASCII_ENCODING		ASCII_BASE_33
-PRIMERS_FILE		primers.txt
-BARCODES_MAP		barcodes_map.txt
-BARCODES_MODE		2
-METADATA_FILE		metadata.txt
-PROCESSED		False
+RAW_FASTQ_FILE      myData.fastq
+ASCII_ENCODING      ASCII_BASE_33
+PRIMERS_FILE        primers.txt
+BARCODES_MAP        barcodes_map.txt
+BARCODES_MODE       2
+METADATA_FILE       metadata.txt
+PROCESSED           False
 #16S_end
 \end{verbatim}
-Note that you must also specify the place where barcodes are to be found, i.e. either in the "$>$" sequence ID lines (mode 1) or in the sequences themselves (mode 2).  The {\tt PROCESSED} flag tells the processing instance that the dataset needs to be processed into OTU tables.
+Note that you \textbf{must} also specify the place where barcodes are to be found, i.e. either in the "$>$" sequence ID lines (mode 1) or in the sequences themselves (mode 2).  The {\tt PROCESSED} flag tells the processing instance that the dataset needs to be processed into OTU tables.
+
+Your {\tt barcodes\_map.txt} file would look something like this:
+
+\begin{verbatim}
+S1      ATCGCTAGTA
+S2      TCGCTATATA
+S3      TCTACAGCGT
+S4      CGTACTCAGT
+\end{verbatim}
 
 \subsubsection{Case 2: raw FASTQ file of ITS sequences, primers and barcodes have been removed}
 In the case where the 'raw' data has already had primers and barcodes removed (but is not yet de-multiplexed, i.e. all samples are still in the same FASTQ file), the sample IDs must be listed in the sequence ID lines of the FASTQ file.  When the pipeline removes barcodes itself and replaces them with sample IDs, individual sequence reads for a given {\tt sampleID} will be annotated as {\tt sampleID;1, sampleID;2}, etc., where we note here that the {\tt BARCODES\_SEPARATOR} is ';'.  However, in a dataset where the barcodes have previously been removed, you will have to look into the FASTQ file to check the 'separator' character.  Your summary file would look something like this:
@@ -136,13 +160,13 @@ In the case where the 'raw' data has already had primers and barcodes removed (b
 DATASET_ID	myDataset
 
 #ITS_start
-RAW_FASTQ_FILE	myData.fastq
-ASCII_ENCODING	ASCII_BASE_33
-PRIMERS_FILE	None
-BARCODES_MAP	None
-BARCODES_SEPARATOR	;
-METADATA_FILE	metadata.txt
-PROCESSED	False
+RAW_FASTQ_FILE     myData.fastq
+ASCII_ENCODING     ASCII_BASE_33
+PRIMERS_FILE       None
+BARCODES_MAP       None
+BARCODES_SEPARATOR ;
+METADATA_FILE      metadata.txt
+PROCESSED          False
 #ITS_end
 \end{verbatim}
 		
@@ -153,13 +177,13 @@ Sometimes sequencing data are available in a demultiplexed form, where the reads
 DATASET_ID	myDataset
 
 #16S_start
-RAW_FASTQ_FILES	fastq_filemap.txt
-ASCII_ENCODING		ASCII_BASE_33
-PRIMERS_FILE		primers.txt
-BARCODES_MAP		barcodes_map.txt
-BARCODES_MODE		2
-METADATA_FILE		metadata.txt
-PROCESSED		False
+RAW_FASTQ_FILES     fastq_filemap.txt
+ASCII_ENCODING      ASCII_BASE_33
+PRIMERS_FILE        primers.txt
+METADATA_FILE       metadata.txt
+PROCESSED           False
+PRIMERS_FILE        None
+BARCODES_MAP        None
 #16S_end
 \end{verbatim}
 
@@ -172,6 +196,24 @@ SRR10003.fastq	S3
 SRR10004.fastq	S4
 \end{verbatim}
 
+\subsubsection{Case 4: multiple demultiplexed raw paired-end FASTQ files of 16S sequences, each file corresponding to a single sample}
+If your 16S FASTQ files are split into forward and reverse paired-end reads, the pipeline can merge them for you. Specify {\tt MERGE\_PAIRS} in the summary file, and also include the filename suffixes corresponding to forward and reverse reads. If your forward read fastq files were named {\tt sampleID\_R1.fastq} and your reverse read fastq files were named {\tt sampleID\_R1.fastq}, your summary file would look something like this:
+
+\begin{verbatim}
+DATASET_ID	myDataset
+
+#16S_start
+RAW_FASTQ_FILES fastq_filemap.txt
+PRIMERS_FILE    None
+BARCODES_MAP    None
+MERGE_PAIRS	    True
+FWD_SUFFIX      _R1.fastq
+REV_SUFFIX      _R2.fastq
+PROCESSED       False
+#16S_end
+\end{verbatim}
+
+
 \section{Running the pipeline}
 Once you have placed all relevant files and folders, including the summary file into a single folder, you can call the script {\tt Master.py} taking the path to this folder as input.  {\tt Master.py} which will parse the summary file and launch the appropriate scripts to process your request.  Suppose the path to the folder containing the dataset is {\tt /home/ubuntu/dataset\_folder}, and contains a summary file where you specified the dataset ID as 'myDataset', you would run the following command from anywhere:
 \begin{verbatim}
@@ -181,7 +223,9 @@ If you prefer to run the program in the background, you can add an {\tt \&} to t
 \begin{verbatim}
 nohup python ~/scripts/Master.py -i /home/ubuntu/dataset_folder &
 \end{verbatim}
-Processing happens in a folder within the {\tt proc} folder, with path {\tt /home/ubuntu/proc/myDataset\_proc\_16S} or {\tt /home/ubuntu/proc/myDataset\_proc\_ITS}, depending on the amplicon being analyzed.  Final results are put in {\tt /home/ubuntu/processing\_results/}. Log files are put in the {\tt /home/ubuntu/logs} folder, with two files created for each dataset: {\tt stderr\_datasetID.log} for error and warning messages and {\tt stdout\_datasetID.log} for various progress messages.
+Processing happens in a folder within the {\tt proc} folder, with path {\tt /home/ubuntu/proc/ \\ myDataset\_proc\_16S} or {\tt /home/ubuntu/proc/myDataset\_proc\_ITS}, depending on the amplicon being analyzed.  Final results are put in {\tt /home/ubuntu/processing\_results/}. Log files are put in the {\tt /home/ubuntu/logs} folder, with two files created for each dataset: {\tt stderr\_datasetID.log} for error and warning messages and {\tt stdout\_datasetID.log} for various progress messages.
+
+\textbf{Please remove your files from the \~{}/proc folder once you have checked your processing results!} The \~{}/proc folder can easily fill up - it contains the original raw files are and additional copies corresponding to each processing step!
 
 \section{Pipeline output files and directories}
 The pipeline outputs different OTU tables and corresponding representative sequences. All final outputs can be found in the {\tt processing\_results} folder, under a sub-directory labeled {\tt myDataset\_results}. Files in this directory are labeled systematically, usually with the format {\tt myDataset.file\_description.otu\_similarity.file\_type}. 

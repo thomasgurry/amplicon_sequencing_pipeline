@@ -32,6 +32,7 @@ parser.add_option("-o", "--output_dir", type="string", dest="output_dir")
 parser.add_option("-p", "--primers_removed", dest="primers_removed", default='False')
 parser.add_option("-b", "--split_by_barcodes", dest="split_by_barcodes", default='False')
 parser.add_option("-m", "--multiple_files", dest="multiple_raw_files", default='False')
+parser.add_option("-r", "--paired_end", dest="paired_end", default='False')
 (options, args) = parser.parse_args()
 
 if( not options.input_dir ):
@@ -63,15 +64,18 @@ try:
     elif amplicon_type == 'ITS':
         metadata_file = summary_obj.attribute_value_ITS['METADATA_FILE']
 except:
-    metadata_file = None
-    warning("No metadata file found!!  This will cause problems downstream...")
+    metadata_file = "None"
+    #warning("No metadata file found!!  This will cause problems downstream...")
 
 # If no output directory specified, default to $home/proc/
 homedir = os.getenv("HOME")
 if( not options.output_dir ):
     print("No output directory name specified.  Writing to " + homedir + "/proc/ by default.")
     options.output_dir = homedir + '/proc/' + dataset_ID + '_proc_' + amplicon_type
-
+else:
+    options.output_dir = options.output_dir + '/' + dataset_ID + '_proc_' + amplicon_type
+    print("Output directory specified. Writing to " + options.output_dir)
+    
 # Make a directory for the 16S processing results 
 working_directory = options.output_dir
 try:
@@ -244,9 +248,60 @@ else:
     sampleID_map = [line.split('\t')[1].rstrip('\n') for line in all_lines if len(line.strip('\n')) > 0]
     raw_filenames = [os.path.join(working_directory,line.split('\t')[0].split('/')[-1]) for line in all_lines if len(line.rstrip('\n')) > 0]
     for i in range(len(raw_filenames_orig)):
-        cmd_str = 'cp ' + raw_filenames_orig[i] + ' ' + raw_filenames[i]
-        os.system(cmd_str)
+        # If file has not already been copied, copy it to working directory
+        if not os.path.exists(raw_filenames[i]):
+            cmd_str = 'cp ' + raw_filenames_orig[i] + ' ' + raw_filenames[i]
+            os.system(cmd_str)
+        else:
+            print(raw_filenames[i] + ' already copied. Skipping.')
     split_filenames = raw_filenames
+    
+    # If separate forward and reverse reads, also copy reverse files
+    # And set up stuff to do merging (should maybe put some of this above)
+    if options.paired_end == "True":
+        # Get the suffix for forward and reverse reads
+        try:
+            fwd_suffix = summary_obj.attribute_value_16S['FWD_SUFFIX']
+        except:
+            fwd_suffix = "_1.fastq"
+        try:
+            rev_suffix = summary_obj.attribute_value_16S['REV_SUFFIX']
+        except:
+            rev_suffix = "_2.fastq"
+        # Get the original reverse read file names
+        revfiles_orig = [i.split(fwd_suffix)[0] + rev_suffix for i in raw_filenames_orig]
+        revfiles_wdir = [i.split(fwd_suffix)[0] + rev_suffix for i in raw_filenames]
+        # Copy to working directory
+        for i in range(len(revfiles_orig)):
+            # If file has not already been copied, copy it to working directory
+            if not os.path.exists(revfiles_wdir[i]):
+                cmd_str = 'cp ' + revfiles_orig[i] + ' ' + revfiles_wdir[i]
+                os.system(cmd_str)
+            else:
+                print(revfiles_orig[i] + ' already copied. Skipping.')
+        # Make directory for merge logs
+        mergelog_dir = os.path.join(working_directory, 'merge_logs')
+        try:
+            os.mkdir(mergelog_dir)
+        except:
+            pass
+
+# Prepare for using parallel threads as a function of the number of CPUs
+cpu_count = mp.cpu_count()
+
+# If paired_end reads, merge.
+if (raw_file_type == "FASTQ" and options.paired_end == "True"):
+    print('Merging reads')
+    pool = mp.Pool(cpu_count)
+    fwd_filenames = split_filenames
+    rev_filenames = revfiles_wdir
+    merged_filenames = [i.split(fwd_suffix)[0] + '.merged.fastq' for i in fwd_filenames]
+    merge_logs = [os.path.join(mergelog_dir, i.split('/')[-1].split(fwd_suffix)[0] + '.log') for i in fwd_filenames]
+    pool.map(OTU.merge_reads, zip(fwd_filenames, rev_filenames, merged_filenames, merge_logs))
+    pool.close()
+    pool.join()
+    split_filenames = merged_filenames
+    split_filenames = QC.remove_empty_files(split_filenames, step='merge paired end reads')
 
 
 # Do quality control steps (generate read length histograms etc.)
@@ -257,7 +312,6 @@ try:
 except:
     print("Unable to create quality control directory.  Already exists?")
 QC.read_length_histogram(split_filenames[0], QCpath, raw_file_type)
-    
 
 # Check whether samples need to be split by barcodes and primers need to be removed
 if (options.split_by_barcodes == 'True' and options.primers_removed == 'True' and options.multiple_raw_files == 'False'):
@@ -266,9 +320,7 @@ if (options.split_by_barcodes == 'True' and options.primers_removed == 'True' an
         cmd_str = 'cp ' + split_filename + ' ' + split_filename + '.sb.pt'
         os.system(cmd_str)
     
-# Step 2 - loop through these split files and launch parallel threads as a function of the number of CPUs
-cpu_count = mp.cpu_count()
-
+# Step 2 - loop through these split files
 # Step 2.1 - demultiplex, i.e. sort by barcode
 if (options.split_by_barcodes == 'False' and options.multiple_raw_files == 'False'):
     if amplicon_type == '16S':
@@ -418,16 +470,12 @@ OTU.renumber_sequences(split_filenames, separator)
 
 
 # Step 3 - Recombine into a single fasta file
-if len(split_filenames)>1:
-    cat_str = ['cat']
-    for filename in split_filenames:
-        cat_str.append(filename)
-    cat_str = ' '.join(cat_str)
-    cat_str = cat_str + ' > ' + fasta_trimmed    
-    # Recombine
-    os.system(cat_str)
-else:
-    os.system('cp ' + split_filenames[0] + ' ' + fasta_trimmed)
+# Since we'll be appending to fasta_trimmed file, need to clear it if it already exists
+if os.path.exists(fasta_trimmed):
+    os.system('rm ' + fasta_trimmed)
+for filename in split_filenames:
+    os.system('cat ' + filename + ' >> ' + fasta_trimmed)
+
 
 
 # Dereplicate sequences into a list of uniques for clustering
@@ -673,7 +721,7 @@ except:
 os.system('cp ' + OTU_sequences_fasta + ' ' + dataset_folder + '/.')
 os.system('cp ' + fasta_dereplicated + ' ' + dataset_folder + '/.')
 
-if metadata_file is not None:
+if metadata_file != "None":
     os.system('cp ' + options.input_dir + '/' + metadata_file + ' ' + dataset_folder + '/.')
 
 # Put the summary file in the folder and change the summary file path to its new location
@@ -688,6 +736,8 @@ if amplicon_type == '16S':
         summary_obj.attribute_value_16S['METADATA_FILE'] = ntpath.basename(metadata_file)
     except:
         summary_obj.attribute_value_16S['METADATA_FILE'] = "None"
+    summary_obj.attribute_value_16S['PROCESSED'] = "True"
+    summary_obj.WriteSummaryFile()
 elif amplicon_type == 'ITS':
     summary_obj.attribute_value_ITS['OTU_TABLE_DENOVO'] = ntpath.basename(OTU_table_denovo)
     summary_obj.attribute_value_ITS['OTU_TABLE_RDP'] = ntpath.basename(OTU_table_denovo_RDP)
@@ -698,8 +748,8 @@ elif amplicon_type == 'ITS':
     except:
         summary_obj.attribute_value_ITS['METADATA_FILE'] = "None"
 
-summary_obj.attribute_value_ITS['PROCESSED'] = 'True'
-summary_obj.WriteSummaryFile()
+    summary_obj.attribute_value_ITS['PROCESSED'] = 'True'
+    summary_obj.WriteSummaryFile()
 
 
 # Transfer results 
