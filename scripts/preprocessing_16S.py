@@ -652,6 +652,7 @@ def relabel_denovo_OTUs_with_RDP(OTU_table_denovo, RDP_assignments):
     otu_table = pd.read_csv(OTU_table_denovo,sep='\t')
     OTU_IDs = otu_table['OTU_ID'].tolist()
     for i in range(len(OTU_IDs)):
-        OTU_IDs[i] = RDP_assignments[OTU_IDs[i]]
+        OTU_IDs[i] = '_'.join(RDP_assignments[OTU_IDs[i]].split(' '))
+
     otu_table['OTU_ID'] = OTU_IDs
     otu_table.to_csv(OTU_table_denovo + '.rdp_assigned', sep='\t', index=False)
