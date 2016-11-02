@@ -23,6 +23,7 @@ from SummaryParser import *
 from Features import *
 import pickle
 import QualityControl as QC
+import FileManipulations as FM
 
 # Read in arguments for the script
 usage = "%prog -i INPUT_DIR -o OUTPUT_DIR_FULLPATH"
@@ -192,6 +193,23 @@ else:
     warning("No ASCII encoding specified in the summary file for the quality scores in the FASTQ file.  Using ASCII 33 as default.")
     ascii_encoding = 33
 
+if options.paired_end == "True":
+    # Get the suffixes for forward and reverse reads
+    try:
+        fwd_suffix = summary_obj.attribute_value_16S['FWD_SUFFIX']
+    except:
+        fwd_suffix = "_1.fastq"
+    try:
+        rev_suffix = summary_obj.attribute_value_16S['REV_SUFFIX']
+    except:
+        rev_suffix = "_2.fastq"
+    # Make directory for merge logs
+    mergelog_dir = os.path.join(working_directory, 'merge_logs')
+    try:
+        os.mkdir(mergelog_dir)
+    except:
+        pass
+
 
 # Parallel steps:
 #       1. split fastq into chunks
@@ -203,11 +221,14 @@ os.chdir(working_directory)
 # Checkpoint - single or multiple raw files?  If multiple, the assumption is they are demultiplexed, where each raw file corresponds to a single sample's reads.
 if options.multiple_raw_files == 'False':
 
+    """
     # Step 1.1 - get raw data filesize, then split into ~10Mb pieces (100000 lines) if smaller than 100 Mb, or into ~100Mb pieces (1000000 lines) otherwise.  Can optimize this eventually
     # to split according to the number of cpus.
     rawfilesize = os.path.getsize(raw_data_file)
 
     # Step 1.1 - split file into 1000000 line (~100Mb) chunks
+    # Note: the 'split' command takes the raw_data_file, splits it into separate files
+    # and puts those files in the current directory (i.e. working_directory)
     if(rawfilesize < 2e8):
         os.system('split -l 100000 ' + raw_data_file)
     else:
@@ -220,9 +241,31 @@ if options.multiple_raw_files == 'False':
             filename = 'x'+c1+c2
             if(os.path.isfile(filename)):
                 split_filenames.append(filename)
+    # Claire's note: I'm pretty sure split -l 10000 raw_data_file will always make
+    # at least xaa, and so len(split_filenames) should never be zero...
     if len(split_filenames) == 0:
         split_filenames = [raw_data_file]
     raw_filenames = split_filenames
+    """
+
+    split_filenames = FM.split_file_and_return_names(raw_data_file)
+
+    # If you have non-demultiplexed, unmerged fastq files (i.e. one file with all fwd
+    # reads for all samples and also one file with all rev reads for all samples),
+    # Rename the split files to be xaa_fwdsuffix, split the rev file, and rename
+    # those to xaa_revsuffix.
+    if options.paired_end == "True":
+        # Rename xaa... into xaa_fwdsuffix
+        for i in split_filenames:
+            os.system('mv ' + i + ' ' + i + fwd_suffix)
+        split_filenames = [i + fwd_suffix for i in split_filenames]
+        
+        # Split the reverse file
+        rev_split_filenames = FM.split_file_and_return_names(raw_data_file.strip(fwd_suffix) + rev_suffix)
+        # For user's sake, also rename these with the right suffix
+        for i in rev_split_filenames:
+            os.system('mv ' + i + ' ' + i + rev_suffix)
+        rev_split_filenames = [i + rev_suffix for i in rev_split_filenames]    
 
 else:
     
@@ -244,13 +287,13 @@ else:
             else:
                 raise NameError("Empty lines found in raw data summary file '" + raw_data_summary_file + "'.  Please remove these before proceeding.")
 
-    raw_filenames_orig = [os.path.join(options.input_dir, line.split('\t')[0]) for line in all_lines if len(line.rstrip('\n')) > 0]
+    raw_filenames_homedir = [os.path.join(options.input_dir, line.split('\t')[0]) for line in all_lines if len(line.rstrip('\n')) > 0]
     sampleID_map = [line.split('\t')[1].rstrip('\n') for line in all_lines if len(line.strip('\n')) > 0]
     raw_filenames = [os.path.join(working_directory,line.split('\t')[0].split('/')[-1]) for line in all_lines if len(line.rstrip('\n')) > 0]
     for i in range(len(raw_filenames_orig)):
         # If file has not already been copied, copy it to working directory
         if not os.path.exists(raw_filenames[i]):
-            cmd_str = 'cp ' + raw_filenames_orig[i] + ' ' + raw_filenames[i]
+            cmd_str = 'cp ' + raw_filenames_homedir[i] + ' ' + raw_filenames[i]
             os.system(cmd_str)
         else:
             print(raw_filenames[i] + ' already copied. Skipping.')
@@ -259,17 +302,8 @@ else:
     # If separate forward and reverse reads, also copy reverse files
     # And set up stuff to do merging (should maybe put some of this above)
     if options.paired_end == "True":
-        # Get the suffix for forward and reverse reads
-        try:
-            fwd_suffix = summary_obj.attribute_value_16S['FWD_SUFFIX']
-        except:
-            fwd_suffix = "_1.fastq"
-        try:
-            rev_suffix = summary_obj.attribute_value_16S['REV_SUFFIX']
-        except:
-            rev_suffix = "_2.fastq"
         # Get the original reverse read file names
-        revfiles_orig = [i.split(fwd_suffix)[0] + rev_suffix for i in raw_filenames_orig]
+        revfiles_homedir = [i.split(fwd_suffix)[0] + rev_suffix for i in raw_filenames_homedir]
         revfiles_wdir = [i.split(fwd_suffix)[0] + rev_suffix for i in raw_filenames]
         # Copy to working directory
         for i in range(len(revfiles_orig)):
@@ -279,12 +313,6 @@ else:
                 os.system(cmd_str)
             else:
                 print(revfiles_orig[i] + ' already copied. Skipping.')
-        # Make directory for merge logs
-        mergelog_dir = os.path.join(working_directory, 'merge_logs')
-        try:
-            os.mkdir(mergelog_dir)
-        except:
-            pass
 
 # Prepare for using parallel threads as a function of the number of CPUs
 cpu_count = mp.cpu_count()
@@ -294,7 +322,7 @@ if (raw_file_type == "FASTQ" and options.paired_end == "True"):
     print('Merging reads')
     pool = mp.Pool(cpu_count)
     fwd_filenames = split_filenames
-    rev_filenames = revfiles_wdir
+    rev_filenames = rev_split_filenames
     merged_filenames = [i.split(fwd_suffix)[0] + '.merged.fastq' for i in fwd_filenames]
     merge_logs = [os.path.join(mergelog_dir, i.split('/')[-1].split(fwd_suffix)[0] + '.log') for i in fwd_filenames]
     pool.map(OTU.merge_reads, zip(fwd_filenames, rev_filenames, merged_filenames, merge_logs))
