@@ -213,6 +213,12 @@ PROCESSED       False
 #16S_end
 \end{verbatim}
 
+If you have de-multiplexed files (as in this example), the file names in your 
+{\tt fastq\_filemap.txt} file should be the forward read fastq files.
+
+If instead you have non-demultiplexed sequences (i.e. two fastq files, one containing your
+forward reads and one containing your reverse reads), {\tt RAW\_FASTQ\_FILE} should point
+to the file containing the forward reads.
 
 \section{Running the pipeline}
 Once you have placed all relevant files and folders, including the summary file into a single folder, you can call the script {\tt Master.py} taking the path to this folder as input.  {\tt Master.py} which will parse the summary file and launch the appropriate scripts to process your request.  Suppose the path to the folder containing the dataset is {\tt /home/ubuntu/dataset\_folder}, and contains a summary file where you specified the dataset ID as 'myDataset', you would run the following command from anywhere:
@@ -230,6 +236,7 @@ Processing happens in a folder within the {\tt proc} folder, with path {\tt /hom
 \section{Pipeline output files and directories}
 The pipeline outputs different OTU tables and corresponding representative sequences. All final outputs can be found in the {\tt processing\_results} folder, under a sub-directory labeled {\tt myDataset\_results}. Files in this directory are labeled systematically, usually with the format {\tt myDataset.file\_description.otu\_similarity.file\_type}. 
 
+\subsection{Top directory}
 Files in the top results directory are as follows:
 \begin{itemize}
 	\item {\tt myDataset.otu\_seqs.N.fasta}: FASTA file with the representative sequences for the denovo OTUs, clustered at N\%.
