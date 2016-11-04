@@ -290,7 +290,7 @@ else:
     raw_filenames_homedir = [os.path.join(options.input_dir, line.split('\t')[0]) for line in all_lines if len(line.rstrip('\n')) > 0]
     sampleID_map = [line.split('\t')[1].rstrip('\n') for line in all_lines if len(line.strip('\n')) > 0]
     raw_filenames = [os.path.join(working_directory,line.split('\t')[0].split('/')[-1]) for line in all_lines if len(line.rstrip('\n')) > 0]
-    for i in range(len(raw_filenames_orig)):
+    for i in range(len(raw_filenames_homedir)):
         # If file has not already been copied, copy it to working directory
         if not os.path.exists(raw_filenames[i]):
             cmd_str = 'cp ' + raw_filenames_homedir[i] + ' ' + raw_filenames[i]
@@ -306,13 +306,13 @@ else:
         revfiles_homedir = [i.split(fwd_suffix)[0] + rev_suffix for i in raw_filenames_homedir]
         revfiles_wdir = [i.split(fwd_suffix)[0] + rev_suffix for i in raw_filenames]
         # Copy to working directory
-        for i in range(len(revfiles_orig)):
+        for i in range(len(revfiles_homedir)):
             # If file has not already been copied, copy it to working directory
             if not os.path.exists(revfiles_wdir[i]):
-                cmd_str = 'cp ' + revfiles_orig[i] + ' ' + revfiles_wdir[i]
+                cmd_str = 'cp ' + revfiles_homedir[i] + ' ' + revfiles_wdir[i]
                 os.system(cmd_str)
             else:
-                print(revfiles_orig[i] + ' already copied. Skipping.')
+                print(revfiles_homedir[i] + ' already copied. Skipping.')
 
 # Prepare for using parallel threads as a function of the number of CPUs
 cpu_count = mp.cpu_count()
