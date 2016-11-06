@@ -16,6 +16,17 @@ from bidict import *
 import pandas as pd
 from collections import defaultdict
 
+def merge_reads((fwd_fastq, rev_fastq, merged_fastq, merge_log)):
+    # Merges fwd and rev fastq files. Outputs merged_fastq and merge_log
+    print('[[ Merge paired end reads]] ... ')
+    str = '/home/ubuntu/bin/usearch8 -fastq_mergepairs ' + fwd_fastq + \
+          ' -reverse ' + rev_fastq + ' -fastqout ' + merged_fastq + \
+          ' -log ' + merge_log
+    os.system(str)
+    print(str)
+    print('[[ Merge paired end reads]] Finished.')
+    return None
+
 def length_stats_fastq(fastq_in):
     # Returns full sequence length, and  5th percentile of read length for a 100000 sample from a FASTQ file.
     iter_seq = util.iter_fsq
@@ -295,6 +306,22 @@ def parse_multihit_alignment(uc_file):
     alignment_dict = {}
     for line in all_lines:
         query = line.split()[8]
+        if query not in alignment_dict.keys():
+            alignment_dict[query] = []
+        hit = line.split()[9]
+        alignment_dict[query].append(hit)
+    return alignment_dict
+
+def parse_multihit_alignment_test(uc_file):
+    # Parses a UC file from a usearch alignment where -maxaccepts is set to 10, i.e. there are a maximum of ten hits per query.
+    with open(uc_file, 'r') as fid:
+        all_lines = fid.readlines()
+    alignment_dict = {}
+    sum1 = 0
+    for line in all_lines:
+        print str(sum1) + " / " + str(len(all_lines))
+        sum1 += 1
+        query = line.split()[8].split(';')[0]
         if query not in alignment_dict.keys():
             alignment_dict[query] = []
         hit = line.split()[9]
@@ -653,6 +680,6 @@ def relabel_denovo_OTUs_with_RDP(OTU_table_denovo, RDP_assignments):
     OTU_IDs = otu_table['OTU_ID'].tolist()
     for i in range(len(OTU_IDs)):
         OTU_IDs[i] = '_'.join(RDP_assignments[OTU_IDs[i]].split(' '))
-
+        
     otu_table['OTU_ID'] = OTU_IDs
     otu_table.to_csv(OTU_table_denovo + '.rdp_assigned', sep='\t', index=False)
