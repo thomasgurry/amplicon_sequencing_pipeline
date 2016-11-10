@@ -18,7 +18,6 @@ import multiprocessing as mp
 import ntpath
 import preprocessing_16S as OTU
 import Formatting as frmt
-from CommLink import *
 from SummaryParser import *
 from Features import *
 import pickle
@@ -57,16 +56,6 @@ sys.stdout = open('/home/ubuntu/logs/stdout_' + dataset_ID + '_proc_' + amplicon
 sys.stderr = open('/home/ubuntu/logs/stderr_' + dataset_ID + '_proc_' + amplicon_type + '.log','w')
 def warning(*objs):
     print("WARNING: ", *objs, file=sys.stderr)
-
-# Check for presence of metadata map - report if metadata is missing.
-try:
-    if amplicon_type == '16S':
-        metadata_file = summary_obj.attribute_value_16S['METADATA_FILE']
-    elif amplicon_type == 'ITS':
-        metadata_file = summary_obj.attribute_value_ITS['METADATA_FILE']
-except:
-    metadata_file = "None"
-    #warning("No metadata file found!!  This will cause problems downstream...")
 
 # If no output directory specified, default to $home/proc/
 homedir = os.getenv("HOME")
@@ -220,35 +209,9 @@ os.chdir(working_directory)
 
 # Checkpoint - single or multiple raw files?  If multiple, the assumption is they are demultiplexed, where each raw file corresponds to a single sample's reads.
 if options.multiple_raw_files == 'False':
-
-    """
-    # Step 1.1 - get raw data filesize, then split into ~10Mb pieces (100000 lines) if smaller than 100 Mb, or into ~100Mb pieces (1000000 lines) otherwise.  Can optimize this eventually
-    # to split according to the number of cpus.
-    rawfilesize = os.path.getsize(raw_data_file)
-
-    # Step 1.1 - split file into 1000000 line (~100Mb) chunks
-    # Note: the 'split' command takes the raw_data_file, splits it into separate files
-    # and puts those files in the current directory (i.e. working_directory)
-    if(rawfilesize < 2e8):
-        os.system('split -l 100000 ' + raw_data_file)
-    else:
-        os.system('split -l 1000000 ' + raw_data_file)
-
-    # Step 1.2 - get split filenames
-    split_filenames = []
-    for c1 in ascii_lowercase:
-        for c2 in ascii_lowercase:
-            filename = 'x'+c1+c2
-            if(os.path.isfile(filename)):
-                split_filenames.append(filename)
-    # Claire's note: I'm pretty sure split -l 10000 raw_data_file will always make
-    # at least xaa, and so len(split_filenames) should never be zero...
-    if len(split_filenames) == 0:
-        split_filenames = [raw_data_file]
-    raw_filenames = split_filenames
-    """
-
+    
     split_filenames = FM.split_file_and_return_names(raw_data_file)
+    raw_filenames = split_filenames
 
     # If you have non-demultiplexed, unmerged fastq files (i.e. one file with all fwd
     # reads for all samples and also one file with all rev reads for all samples),
@@ -699,7 +662,7 @@ QC.reads_thrown_out_at_each_step(raw_filenames, processing_summary_file)
 
 #################################################
 #
-# Put all results and metadata file in a single folder
+# Put all results in a single folder
 #
 #################################################
 
@@ -749,9 +712,6 @@ except:
 os.system('cp ' + OTU_sequences_fasta + ' ' + dataset_folder + '/.')
 os.system('cp ' + fasta_dereplicated + ' ' + dataset_folder + '/.')
 
-if metadata_file != "None":
-    os.system('cp ' + options.input_dir + '/' + metadata_file + ' ' + dataset_folder + '/.')
-
 # Put the summary file in the folder and change the summary file path to its new location
 os.system('cp ' + summary_file + ' ' + dataset_folder + '/.')
 summary_obj.summary_file = dataset_folder + '/summary_file.txt'
@@ -760,10 +720,6 @@ if amplicon_type == '16S':
     summary_obj.attribute_value_16S['OTU_TABLE_RDP'] = ntpath.basename(OTU_table_denovo_RDP)
     summary_obj.attribute_value_16S['OLIGOTYPE_TABLE'] = ntpath.basename(oligotype_table_filename)
     summary_obj.attribute_value_16S['OTU_SEQUENCES_FASTA'] = ntpath.basename(OTU_sequences_fasta)
-    try:
-        summary_obj.attribute_value_16S['METADATA_FILE'] = ntpath.basename(metadata_file)
-    except:
-        summary_obj.attribute_value_16S['METADATA_FILE'] = "None"
     summary_obj.attribute_value_16S['PROCESSED'] = "True"
     summary_obj.WriteSummaryFile()
 elif amplicon_type == 'ITS':
@@ -771,10 +727,6 @@ elif amplicon_type == 'ITS':
     summary_obj.attribute_value_ITS['OTU_TABLE_RDP'] = ntpath.basename(OTU_table_denovo_RDP)
     summary_obj.attribute_value_ITS['OLIGOTYPE_TABLE'] = ntpath.basename(oligotype_table_filename)
     summary_obj.attribute_value_ITS['OTU_SEQUENCES_FASTA'] = ntpath.basename(OTU_sequences_fasta)
-    try:
-        summary_obj.attribute_value_ITS['METADATA_FILE'] = ntpath.basename(metadata_file)
-    except:
-        summary_obj.attribute_value_ITS['METADATA_FILE'] = "None"
 
     summary_obj.attribute_value_ITS['PROCESSED'] = 'True'
     summary_obj.WriteSummaryFile()
@@ -783,53 +735,4 @@ elif amplicon_type == 'ITS':
 # Transfer results 
 processing_results_dir = '/home/ubuntu/processing_results'
 os.system('cp -r ' + os.path.join(working_directory, dataset_folder) + ' ' + processing_results_dir + '/.')
-
-'''
-# Transfer to PiCRUST server and wait for results
-cl = CommLink('proc')
-results_folder = dataset_ID + '_results'
-test = cl.launch_proc_listener(dataset_folder, results_folder)
-
-# Move results from inbox to results folder
-processing_results_dir = '/home/ubuntu/processing_results'
-os.system('mv /home/ubuntu/inbox/' + results_folder + ' ' + processing_results_dir + '/.')
-os.chdir(os.path.join(processing_results_dir, results_folder))
-
-
-# Extract features
-features = Features('summary_file.txt')
-features.LoadOTUtable()
-features.LoadPredictedMetagenome()
-metapredL1 = os.path.join('/home/ubuntu/processing_results', results_folder, 'picrust_results/CRC_Zhao_2012.L1.biom')
-metapredL2 = os.path.join('/home/ubuntu/processing_results', results_folder, 'picrust_results/CRC_Zhao_2012.L2.biom')
-metapredL3 = os.path.join('/home/ubuntu/processing_results', results_folder, 'picrust_results/CRC_Zhao_2012.L3.biom')
-features.LoadPredictedMetagenome(metapredL1)
-features.LoadPredictedMetagenome(metapredL2)
-features.LoadPredictedMetagenome(metapredL3)
-features.LoadPhylogeneticFeatures()
-
-# Pickle features
-with open('pickled_features.pkl', 'wb') as fid:
-    pickle.dump(features, fid)
-
-
-###################
-#
-#  Final check - implement a better check in the future
-#
-###################
-
-
-# Check for file size greater than zero - add more thorough check eventually
-otu_proc_success = False
-if(os.stat(OTU_table).st_size > 0 and os.stat(OTU_sequences_fasta).st_size > 0 and os.stat(OTU_sequences_table).st_size > 0):
-    otu_proc_success = True
-
-# Processing complete - if successful, update summary file and write.  Otherwise, leave untouched and exit.
-if(otu_proc_success == True):
-    print("Successfully processed 16S data!  Summary file has been updated.")
-else:
-    print("Failed to process 16S data.")
-
-'''
 

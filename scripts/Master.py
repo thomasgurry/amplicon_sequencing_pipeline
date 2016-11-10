@@ -15,7 +15,6 @@ import sys
 import pickle
 from optparse import OptionParser
 from SummaryParser import *
-from Features import *
 import UserInterface as UI
 import QualityControl as QC
 
@@ -133,29 +132,3 @@ elif(summary_obj.attribute_value_ITS['PROCESSED'] == 'False'):
 else:
     print "[[ ITS processing ]] No processing request specified."
 
-'''
-# Load features from ITS processing
-feature_dictionary = Features(summary_filename)
-print "[[ Feature extraction ]] Loading OTU abundance features for each sample."
-feature_dictionary.LoadOTUtable()
-print "[[ Feature extraction ]] Loading predicted KEGG module abundances for each sample."
-feature_dictionary.LoadPredictedMetagenome()
-print "[[ Feature extraction ]] Load L-R phylogenetic features for each sample."
-feature_dictionary.LoadPhylogeneticFeatures()
-
-# Pickle feature dictionary
-pickled_feature_file = processed_dir + '/' + summary_obj.datasetID + '.features.pk1'
-with open(pickled_feature_file, 'wb') as fid:
-    pickle.dump(feature_dictionary, fid)
-
-# Navigate to results directory
-results_dir = os.path.join('/home/ubuntu/processing_results/', summary_obj.datasetID + '_results')
-os.chdir(results_dir)
-    
-# Set up all files required for User Interface
-UI_dir = os.path.join(results_dir, 'UI')
-os.system('mkdir ' + UI_dir)
-target_directory = os.path.join(results_dir, 'UI/json')
-os.system('mkdir ' + target_directory)
-UI.write_json_files(summary_obj.attribute_value_16S['OTU_TABLE_CLOSED_REF'], os.path.join(UI_dir, 'json'))
-'''

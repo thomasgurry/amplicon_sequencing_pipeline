@@ -256,7 +256,7 @@ def collapse_oligotypes(oligotype_table_filename, output_OTU_table):
             abundance_string = '\t'.join(OTU_dict[OTU].astype(int).astype(str))
             line = OTU + '\t' + abundance_string
             fid.write(line + '\n')
-    
+n    
 
 def build_GG_OTU_table(dereplication_map, OTU_GG_dict, OTU_table_gg):
     # Builds a GG-referenced OTU table from a list of sequences (FASTA), a dereplication map (from dereplicate_and_sort()) and a dictionary mapping the fasta sequence IDs to OTU GG IDs.

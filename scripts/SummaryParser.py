@@ -23,7 +23,6 @@ RAW_FASTQ_FILE	obio.raw.fastq
 PRIMERS_FILE	obio.primers.lst
 BARCODES_MAP	obio.barcodes.lst
 BARCODES_MODE   1
-METADATA_FILE	obio.meta.txt
 PROCESSED	True
 ASCII_ENCODING  ASCII_64
 AMPLICON	V1-V2

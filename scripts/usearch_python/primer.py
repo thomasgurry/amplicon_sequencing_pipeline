@@ -50,7 +50,9 @@ def MatchPrefix(Seq, Primer):
 	PrimerLength = len(Primer)
 	n = PrimerLength
 	if L < n:
-		n = L
+                # if the sequence is shorter than the primer, return len(primer) AKA complete mismatch
+		#n = L    
+                return PrimerLength
 	Diffs = 0
 	for i in range(0, n):
 		if not MatchLetter(Seq[i], Primer[i]):
