@@ -15,7 +15,6 @@ import sys
 import pickle
 from optparse import OptionParser
 from SummaryParser import *
-import UserInterface as UI
 import QualityControl as QC
 
 # Read in arguments
