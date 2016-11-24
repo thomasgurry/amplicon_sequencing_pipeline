@@ -22,7 +22,7 @@ from SummaryParser import *
 from Features import *
 import pickle
 import QualityControl as QC
-import FileManipulations as FM
+import PipelineFilesInterface as pipeIO
 
 # Read in arguments for the script
 usage = "%prog -i INPUT_DIR -o OUTPUT_DIR_FULLPATH"
@@ -210,7 +210,7 @@ os.chdir(working_directory)
 # Checkpoint - single or multiple raw files?  If multiple, the assumption is they are demultiplexed, where each raw file corresponds to a single sample's reads.
 if options.multiple_raw_files == 'False':
     
-    split_filenames = FM.split_file_and_return_names(raw_data_file)
+    split_filenames = pipeIO.split_file_and_return_names(raw_data_file)
     raw_filenames = split_filenames
 
     # If you have non-demultiplexed, unmerged fastq files (i.e. one file with all fwd
@@ -224,7 +224,7 @@ if options.multiple_raw_files == 'False':
         split_filenames = [i + fwd_suffix for i in split_filenames]
         
         # Split the reverse file
-        rev_split_filenames = FM.split_file_and_return_names(raw_data_file.strip(fwd_suffix) + rev_suffix)
+        rev_split_filenames = pipeIO.split_file_and_return_names(raw_data_file.strip(fwd_suffix) + rev_suffix)
         # For user's sake, also rename these with the right suffix
         for i in rev_split_filenames:
             os.system('mv ' + i + ' ' + i + rev_suffix)
@@ -488,12 +488,38 @@ OTU.compute_oligotype_table(fasta_trimmed, fasta_dereplicated, OTU_clustering_re
 open_reference_OTU_tables = []
 closed_reference_OTU_tables = []
 
-
 # Completely de novo OTU table
 OTU.collapse_oligotypes(oligotype_table_filename, OTU_table_denovo)
 
 
-# Check if GreenGenes alignment is desired.  Default is yes.
+
+####### Call OTUs using distribution-based clustering
+# TODO: if this is slow, may need to make this default False
+
+## 1. Make necessary files
+sequence_table_file = os.path.join(working_directory, dataset_ID + '.dbOTU.sequence_table')
+dbotu_dereplicated = os.path.join(working_directory, dataset_ID + '.raw_dereplicated.dbOTU.fasta')
+
+# dereplication_map is the output file from OTU.dereplicate_and_sort(), above
+OTU.make_sequence_table_from_derep_map(dereplication_map, sequence_table_file)
+OTU.remove_size_from_headers(fasta_dereplicated, dbotu_dereplicated)
+
+
+# Parse summary file for dbOTU options, otherwise set defaults.
+# Options are in 'DISTANCE_CRITERIA', 'ABUNDANCE_CRITERIA', and 'DBOTU_PVAL'
+dist, abund, pval = pipeIO.parse_dbotu_parameters(summary_obj, amplicon_type)
+
+## 2. Call dbOTUs - write OTU table and membership file
+dbotu_membership = os.path.join(working_directory, dataset_ID + '.dbOTU.membership.txt')
+dbotu_otu_table = os.path.join(working_directory, dataset_ID + '.otu_table.dbOTU')
+dbotu_log = os.path.join(working_directory, dataset_ID + '.dbOTU.log')
+OTU.call_dbotus(sequence_table_file, dbotu_dereplicated, dbotu_otu_table, dist, abund, pval, dbotu_log, dbotu_membership)
+
+# Make otu_seqs file which has the representative OTU sequences for the dbOTUs
+dbotu_seqs = os.path.join(working_directory, dataset_ID + '.otu_seqs.dbOTU.fasta')
+OTU.extract_dbotu_otu_seqs(dbotu_membership, dbotu_dereplicated, dbotu_seqs)
+
+###### Check if GreenGenes alignment is desired.  Default is yes.
 try:
     if amplicon_type == '16S':
         DB_align = summary_obj.attribute_value_16S['GG_ALIGN']
@@ -636,13 +662,15 @@ try:
             RDP_cutoff = 0.5
 
     # Obtain RDP classifications on the denovo OTU sequences
-    RDP_classifications = os.path.join(working_directory, 'RDP_classifications.txt')
-    OTU.RDP_classify(OTU_sequences_fasta, RDP_classifications, amplicon_type=amplicon_type)
-    
-    RDP_assignments = OTU.parse_RDP_classifications(RDP_classifications, RDP_cutoff)
-    OTU.relabel_denovo_OTUs_with_RDP(OTU_table_denovo, RDP_assignments)
-    OTU_table_denovo_RDP = OTU_table_denovo + '.rdp_assigned'
+    RDP_classifications = os.path.join(working_directory, 'RDP_classifications.denovo.txt')
+    OTU_table_denovo_RDP = OTU.rdp_classify_and_rename_otu_table(RDP_classifications, OTU_sequences_fasta, amplicon_type, RDP_cutoff, OTU_table_denovo)
     closed_reference_OTU_tables.append(OTU_table_denovo_RDP)
+
+    # Obtain RDP classifications on the dbOTU sequences
+    dbotu_RDP_classifications = os.path.join(working_directory, 'RDP_classifications.dbotu.txt')
+    OTU_table_dbotu_RDP = OTU.rdp_classify_and_rename_otu_table(dbotu_RDP_classifications, dbotu_seqs, amplicon_type, RDP_cutoff, dbotu_otu_table)
+    closed_reference_OTU_tables.append(OTU_table_dbotu_RDP)
+ 
 except:
     print("Failed to create closed-reference table from RDP.")
 
@@ -682,6 +710,7 @@ os.system('cp -r ' + QCpath + ' ' + dataset_folder + '/.')
 
 # Denovo
 os.system('cp ' + OTU_table_denovo + ' ' + dataset_folder + '/.')
+os.system('cp ' + dbotu_otu_table + ' ' + dataset_folder + '/.')
 
 # Oligotypes
 os.system('cp ' + oligotype_table_filename + ' ' + dataset_folder + '/.')
@@ -711,6 +740,7 @@ except:
 # OTU sequences
 os.system('cp ' + OTU_sequences_fasta + ' ' + dataset_folder + '/.')
 os.system('cp ' + fasta_dereplicated + ' ' + dataset_folder + '/.')
+os.system('cp ' + dbotu_seqs + ' ' + dataset_folder + '/.')
 
 # Put the summary file in the folder and change the summary file path to its new location
 os.system('cp ' + summary_file + ' ' + dataset_folder + '/.')
@@ -727,7 +757,6 @@ elif amplicon_type == 'ITS':
     summary_obj.attribute_value_ITS['OTU_TABLE_RDP'] = ntpath.basename(OTU_table_denovo_RDP)
     summary_obj.attribute_value_ITS['OLIGOTYPE_TABLE'] = ntpath.basename(oligotype_table_filename)
     summary_obj.attribute_value_ITS['OTU_SEQUENCES_FASTA'] = ntpath.basename(OTU_sequences_fasta)
-
     summary_obj.attribute_value_ITS['PROCESSED'] = 'True'
     summary_obj.WriteSummaryFile()
 

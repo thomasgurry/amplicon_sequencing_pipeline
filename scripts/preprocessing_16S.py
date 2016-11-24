@@ -15,6 +15,7 @@ import Formatting
 from bidict import *
 import pandas as pd
 from collections import defaultdict
+import dbotu
 
 def merge_reads((fwd_fastq, rev_fastq, merged_fastq, merge_log)):
     # Merges fwd and rev fastq files. Outputs merged_fastq and merge_log
@@ -256,7 +257,7 @@ def collapse_oligotypes(oligotype_table_filename, output_OTU_table):
             abundance_string = '\t'.join(OTU_dict[OTU].astype(int).astype(str))
             line = OTU + '\t' + abundance_string
             fid.write(line + '\n')
-n    
+    
 
 def build_GG_OTU_table(dereplication_map, OTU_GG_dict, OTU_table_gg):
     # Builds a GG-referenced OTU table from a list of sequences (FASTA), a dereplication map (from dereplicate_and_sort()) and a dictionary mapping the fasta sequence IDs to OTU GG IDs.
@@ -666,20 +667,162 @@ def parse_RDP_classifications(rdp_classifications, cutoff):
                 assignment += ';s__'
         except:
             assignment += ';s__'
+
         # Add the seqID as a unique identifier (i.e. keep the 'denovo' OTU ID)
         assignment += ';d__' + str(seqID)
+
         # Remove all quotes in the assignment
         RDP_assignments[seqID] = assignment.replace('"','')
 
     return RDP_assignments
 
 
-def relabel_denovo_OTUs_with_RDP(OTU_table_denovo, RDP_assignments):
-    # Relabels the OTU IDs with their latin names
-    otu_table = pd.read_csv(OTU_table_denovo,sep='\t')
-    OTU_IDs = otu_table['OTU_ID'].tolist()
+def relabel_denovo_OTUs_with_RDP(OTU_table_denovo, RDP_assignments, outfile):
+    """
+    Relabels the OTU IDs with their latin names
+
+    Parameters
+    ----------
+    OTU_table_denovo         str, file with OTU table to rename. OTUs should
+                             be in first column and samples are in rows
+    RDP_assignments          dict, keys are the OTUs in the OTU_table_denovo, 
+                             values are the RDP taxonomy (str). This dictionary
+                             is made by parse_RDP_classifications()
+    outfile                  file to save rdp assigned OTU table to
+
+    """
+    otu_table = pd.read_csv(OTU_table_denovo, sep='\t', index_col=0)
+    OTU_IDs = otu_table.index.tolist()
     for i in range(len(OTU_IDs)):
         OTU_IDs[i] = '_'.join(RDP_assignments[OTU_IDs[i]].split(' '))
         
-    otu_table['OTU_ID'] = OTU_IDs
-    otu_table.to_csv(OTU_table_denovo + '.rdp_assigned', sep='\t', index=False)
+    otu_table.index = OTU_IDs
+    otu_table.to_csv(outfile, sep='\t')
+
+def rdp_classify_and_rename_otu_table(classification_file, otu_seqs_fasta, amplicon_type, rdp_cutoff, otu_table):
+    """
+    Wrapper function for RDP classifying sequences, parsing the classifications,
+    and relabeling the OTU table.
+
+    Parameters
+    ----------
+    classification_file         str, file to save the full RDP classification output to
+    otu_seqs_fasta              str, fasta file with the sequences to classify.
+                                These sequences should be the OTU representative sequences, i.e. *.otu_seqs.*.fasta
+    amplicon_type               '16S' or 'ITS'
+    rdp_cutoff                  float, cutoff c for classification
+    otu_table                   str, file name with denovo OTU table. Has OTUs in
+                                rows and samples in columns. OTU IDs should be
+                                in otu_seqs_fasta.
+    Returns
+    -------
+    otu_table_rdp                str, otu_table + ".rdp_assigned"
+    """
+    
+    ## Classify OTU seqs, and save results to classification_file
+    RDP_classify(otu_seqs_fasta, classification_file, amplicon_type)
+
+    ## Parse RDP classifications into a dict with {OTUID: RDP_classification}
+    rdp_assignments = parse_RDP_classifications(classification_file, rdp_cutoff)
+    print(len(rdp_assignments))
+    print(rdp_assignments.keys())
+    ## Relabel OTU table with RDP classification (plus ;d__<original OTU ID>
+    labeled_otu_table = otu_table + '.rdp_assigned'
+    relabel_denovo_OTUs_with_RDP(otu_table, rdp_assignments, labeled_otu_table)
+    return labeled_otu_table
+
+def make_sequence_table_from_derep_map(dereplication_map, sequence_table):
+    """
+    Make a sequence table with sequence names in rows and samples in columns.
+    compute_oligotype_table does something similar, but I want to bypass usearch.
+    build_OTU_table_from_alignments probably also does something similar, but has
+    additional functions wrapped inside related to mapping to GG.
+
+    This function parses dereplication_map (which is the output from 3.dereplicate.py)
+    and writes it to an OTU table.
+
+    Parameters
+    ----------
+    dereplication_map      output file from 3.dereplicate.py, with format:
+                           sequence label \t S1:counts S2:counts S5:counts 
+                           (etc for all samples with non-zero counts of that sequence)
+    sequence_table         file name for output sequence table
+
+    Returns
+    -------
+    sequence_table         writes file with sequence IDs in rows, samples in columns
+    """
+    
+    ## Parse dereplication_map into a dict
+    with open(dereplication_map, 'r') as f:
+        derepmap = f.readlines()
+
+    derepmap = [l.strip().split('\t') for l in derepmap]
+    
+    ## Intialize seqtable dict from all sequences in derepmap
+    # This dict has {seqID: {smpl_ID: count, smpl_ID: count}, seqID: {}...}
+    seqtable = {l[0]:  {i.split(':')[0]: i.split(':')[1] for i in l[1].split(' ')} for l in derepmap}
+    seqtable = pd.DataFrame(seqtable).T
+    seqtable = seqtable.fillna(0)
+    
+    ## Write to txt file
+    seqtable.to_csv(sequence_table, sep='\t')
+    return None
+
+def remove_size_from_headers(raw_derep_in, raw_derep_out):
+    """
+    Rename sequences in raw_dereplicated.fasta from 'seq;size=204' to 'seq'.
+
+    Parameters
+    ----------
+    raw_derep_in      fasta file with dereplicated, trimmed reads
+                      This is the output from dereplicate_and_sort() which calls
+                      3.dereplicate.py.
+    raw_derep_out     file name for output file with renamed headers
+    """
+
+    with open(raw_derep_out, 'w') as out:
+        for record in util.iter_fst(raw_derep_in):
+            sid = record[0].split(';')[0]
+            seq = record[1]
+            out.write(sid + '\n' + seq + '\n')
+    return None
+    
+def call_dbotus(seq_table_fn, fasta_fn, output_fn, dist_crit, abund_crit, pval_crit, logfn, membershipfn):
+    """
+    Call dbOTUs and rename sequences in OTU table as 'dbotu<seq>'
+    """
+    # call dbotus
+    dbotu.call_otus(seq_table_fn, fasta_fn, output_fn, dist_crit, abund_crit, pval_crit, open(logfn, 'w'), open(membershipfn, 'w'))
+    # rename OTUs with dbotu prefix
+    otutable = pd.read_csv(output_fn, sep='\t', index_col=0)
+    otutable.index = ['dbotu' + str(i) for i in otutable.index]
+    otutable.to_csv(output_fn, sep='\t')
+    return None
+
+def extract_dbotu_otu_seqs(membershipfn, fasta_derep, otu_seqs_fn):
+    """
+    Parameters
+    ----------
+    membershipfn           membership filename, made by dbotu.call_otus
+                           has OTU representative seq IDs in first column, and
+                           OTU member seq IDs in rest of row
+    fatas_derep            fasta dereplicated; sequence IDs should match those
+                           in membershipfn
+    out_seqs_fn            output fasta file to write representative seqs to
+    """
+
+    ## Parse membership file
+    with open(membershipfn, 'r') as f:
+        lines = f.readlines()
+    otu_reps = [l.split('\t')[0] for l in lines]
+
+    ## Grad OTU representative seqs in membership file from dereplicated fasta
+    ## and write to output
+    with open(otu_seqs_fn, 'w') as out:
+        for record in util.iter_fst(fasta_derep):
+            sid = record[0][1:]
+            seq = record[1]
+            if sid in otu_reps:
+                out.write('>dbotu' + sid + '\n' + seq + '\n')
+    return None
