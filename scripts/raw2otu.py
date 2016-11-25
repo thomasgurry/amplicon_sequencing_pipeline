@@ -494,30 +494,31 @@ OTU.collapse_oligotypes(oligotype_table_filename, OTU_table_denovo)
 
 
 ####### Call OTUs using distribution-based clustering
-# TODO: if this is slow, may need to make this default False
-
-## 1. Make necessary files
-sequence_table_file = os.path.join(working_directory, dataset_ID + '.dbOTU.sequence_table')
-dbotu_dereplicated = os.path.join(working_directory, dataset_ID + '.raw_dereplicated.dbOTU.fasta')
-
-# dereplication_map is the output file from OTU.dereplicate_and_sort(), above
-OTU.make_sequence_table_from_derep_map(dereplication_map, sequence_table_file)
-OTU.remove_size_from_headers(fasta_dereplicated, dbotu_dereplicated)
-
 
 # Parse summary file for dbOTU options, otherwise set defaults.
+# 'DBOTU' default is True unless otherwise specified. If 'DBOTU' == 'True', will do distribution-based clustering
 # Options are in 'DISTANCE_CRITERIA', 'ABUNDANCE_CRITERIA', and 'DBOTU_PVAL'
-dist, abund, pval = pipeIO.parse_dbotu_parameters(summary_obj, amplicon_type)
+dbotu_flag, dist, abund, pval = pipeIO.parse_dbotu_parameters(summary_obj, amplicon_type)
 
-## 2. Call dbOTUs - write OTU table and membership file
-dbotu_membership = os.path.join(working_directory, dataset_ID + '.dbOTU.membership.txt')
-dbotu_otu_table = os.path.join(working_directory, dataset_ID + '.otu_table.dbOTU')
-dbotu_log = os.path.join(working_directory, dataset_ID + '.dbOTU.log')
-OTU.call_dbotus(sequence_table_file, dbotu_dereplicated, dbotu_otu_table, dist, abund, pval, dbotu_log, dbotu_membership)
 
-# Make otu_seqs file which has the representative OTU sequences for the dbOTUs
-dbotu_seqs = os.path.join(working_directory, dataset_ID + '.otu_seqs.dbOTU.fasta')
-OTU.extract_dbotu_otu_seqs(dbotu_membership, dbotu_dereplicated, dbotu_seqs)
+if dbotu_flag == "True":
+    ## 1. Make necessary files
+    sequence_table_file = os.path.join(working_directory, dataset_ID + '.dbOTU.sequence_table')
+    dbotu_dereplicated = os.path.join(working_directory, dataset_ID + '.raw_dereplicated.dbOTU.fasta')
+
+    # dereplication_map is the output file from OTU.dereplicate_and_sort(), above
+    OTU.make_sequence_table_from_derep_map(dereplication_map, sequence_table_file)
+    OTU.remove_size_from_headers(fasta_dereplicated, dbotu_dereplicated)
+
+    ## 2. Call dbOTUs - write OTU table and membership file
+    dbotu_membership = os.path.join(working_directory, dataset_ID + '.dbOTU.membership.txt')
+    dbotu_otu_table = os.path.join(working_directory, dataset_ID + '.otu_table.dbOTU')
+    dbotu_log = os.path.join(working_directory, dataset_ID + '.dbOTU.log')
+    OTU.call_dbotus(sequence_table_file, dbotu_dereplicated, dbotu_otu_table, dist, abund, pval, dbotu_log, dbotu_membership)
+
+    # Make otu_seqs file which has the representative OTU sequences for the dbOTUs
+    dbotu_seqs = os.path.join(working_directory, dataset_ID + '.otu_seqs.dbOTU.fasta')
+    OTU.extract_dbotu_otu_seqs(dbotu_membership, dbotu_dereplicated, dbotu_seqs)
 
 ###### Check if GreenGenes alignment is desired.  Default is yes.
 try:
@@ -666,10 +667,11 @@ try:
     OTU_table_denovo_RDP = OTU.rdp_classify_and_rename_otu_table(RDP_classifications, OTU_sequences_fasta, amplicon_type, RDP_cutoff, OTU_table_denovo)
     closed_reference_OTU_tables.append(OTU_table_denovo_RDP)
 
-    # Obtain RDP classifications on the dbOTU sequences
-    dbotu_RDP_classifications = os.path.join(working_directory, 'RDP_classifications.dbotu.txt')
-    OTU_table_dbotu_RDP = OTU.rdp_classify_and_rename_otu_table(dbotu_RDP_classifications, dbotu_seqs, amplicon_type, RDP_cutoff, dbotu_otu_table)
-    closed_reference_OTU_tables.append(OTU_table_dbotu_RDP)
+    if dbotu_flag == 'True':
+        # Obtain RDP classifications on the dbOTU sequences
+        dbotu_RDP_classifications = os.path.join(working_directory, 'RDP_classifications.dbotu.txt')
+        OTU_table_dbotu_RDP = OTU.rdp_classify_and_rename_otu_table(dbotu_RDP_classifications, dbotu_seqs, amplicon_type, RDP_cutoff, dbotu_otu_table)
+        closed_reference_OTU_tables.append(OTU_table_dbotu_RDP)
  
 except:
     print("Failed to create closed-reference table from RDP.")
@@ -710,7 +712,8 @@ os.system('cp -r ' + QCpath + ' ' + dataset_folder + '/.')
 
 # Denovo
 os.system('cp ' + OTU_table_denovo + ' ' + dataset_folder + '/.')
-os.system('cp ' + dbotu_otu_table + ' ' + dataset_folder + '/.')
+if dbotu_flag == "True":
+    os.system('cp ' + dbotu_otu_table + ' ' + dataset_folder + '/.')
 
 # Oligotypes
 os.system('cp ' + oligotype_table_filename + ' ' + dataset_folder + '/.')
@@ -740,7 +743,9 @@ except:
 # OTU sequences
 os.system('cp ' + OTU_sequences_fasta + ' ' + dataset_folder + '/.')
 os.system('cp ' + fasta_dereplicated + ' ' + dataset_folder + '/.')
-os.system('cp ' + dbotu_seqs + ' ' + dataset_folder + '/.')
+
+if dbotu_flag == 'True':
+    os.system('cp ' + dbotu_seqs + ' ' + dataset_folder + '/.')
 
 # Put the summary file in the folder and change the summary file path to its new location
 os.system('cp ' + summary_file + ' ' + dataset_folder + '/.')

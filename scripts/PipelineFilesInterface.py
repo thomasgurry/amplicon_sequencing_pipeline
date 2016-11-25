@@ -62,6 +62,10 @@ def parse_dbotu_parameters(summary_obj, amplicon_type):
 
     if amplicon_type == "16S":
         try:
+            dbotu_flag = summary_obj.attribute_value_16S['DBOTU']
+        except:
+            dbotu_flag = 'True'
+        try:
             dist = summary_obj.attribute_value_16S['DISTANCE_CRITERIA']
         except:
             dist = 0.1
@@ -75,6 +79,10 @@ def parse_dbotu_parameters(summary_obj, amplicon_type):
             pval = 0.0005
 
     elif amplicon_type == "ITS":
+        try:
+            dbotu_flag = summary_obj.attribute_value_ITS['DBOTU']
+        except:
+            dbotu_flag = 'True'
         try:
             dist = summary_obj.attribute_value_ITS['DISTANCE_CRITERIA']
         except:
@@ -91,4 +99,4 @@ def parse_dbotu_parameters(summary_obj, amplicon_type):
     else:
         raise NameError("Incorrect amplicon type specified for dbOTU summary file parsing")
 
-    return dist, abund, pval
+    return dbotu_flag, dist, abund, pval
