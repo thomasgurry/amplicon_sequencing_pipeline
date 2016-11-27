@@ -225,7 +225,7 @@ than 10 times in the entire dataset are discarded. If you want to change
 this number, specify it with \texttt{MIN\_COUNT}.  (e.g. if \texttt{MIN\_COUNT}
 is 2, only singleton sequences are discarded).
 
-\subsubsection{OTU clustering}
+\subsubsection{OTU calling}
 
 You can specify the similarity used to define OTUs in the \texttt{OTU\_SIMILARITY}
 attribute. The default value is 97, corresponding to 97\% OTUs.
@@ -239,6 +239,16 @@ The database files used for this mapping can be found in \texttt{/home/ubuntu/da
 The pipeline assigns taxonomies to \textit{de novo} OTUs using the naive-Bayes RDP
 classifier. By default, the confidence cutoff is 0.5. You can specify a different
 value with the \texttt{RDP\_CUTOFF} attribute.
+
+\subsection{Distribution-based OTU calling}
+
+The pipeline also performs distribution-based clustering \footnote{http://almlab.mit.edu/dbotu3.html}. 
+You can set the abundance, distance and p value criteria
+in the summary file attributes \texttt{DISTANCE\_CRITERIA}, \texttt{ABUNDANCE\_CRITERIA}, and \texttt{DBOTU\_PVAL}.
+
+Distribution-based clustering is performed by default. If you find
+that it's breaking or it takes too long, you can turn it off by setting
+the sumamry file attribute \texttt{DBOTU} to \texttt{False}.
 
 \subsection{Sample summary files}
 
@@ -400,6 +410,8 @@ to take a look!
       \hline
       RDP taxonomy assignment & \texttt{rdp\_classify.py} \\
       \hline
+      Distribution-based clustering & \texttt{dbotu.py} \texttt{call\_otus()} \\
+      \hline
 \end{longtable}
 \end{center}
 }
@@ -410,8 +422,11 @@ The pipeline outputs different OTU tables and corresponding representative seque
 Files in the top results directory are as follows:
 \begin{itemize}
 	\item {\tt myDataset.otu\_seqs.N.fasta}: FASTA file with the representative sequences for the denovo OTUs, clustered at N\%.
+	\item {\tt myDataset.otu\_seqs.dbOTU.fasta}: FASTA file with the representative sequences for the distribution-based OTUs.
 	\item {\tt myDataset.otu\_table.N.denovo}: OTU table with N\% denovo OTUs labeled 
 		{\tt denovo1}, {\tt denovo2}, ... in the rows and samples in the columns.
+	\item {\tt myDataset.otu\_table.N.dbOTU}: OTU table with distribution-based OTUs labeled 
+		{\tt dbotu1}, {\tt dbotu2}, ... in the rows and samples in the columns.
 	\item {\tt myDataset.otu\_table.N.denovo\_oligotypes}: OTU table with N\% denovo 
 		OTUs separated into unique oligotypes. Each OTU is labeled {\tt denovo1.1}, 
 		{\tt denovo1.2}, {\tt denovo2.1}, {\tt denovo2.2}, {\tt denovo2.3}, etc. 
@@ -432,17 +447,23 @@ Within the results folder, there is a subfolder called {\tt quality\_control}, w
 	\item Histogram showing distribution of read lengths, taken from the first 100,000 reads in the raw FASTQ file.
 	\item Bar chart showing number of reads per sample.
 	\item File showing percentage of reads thrown out at each processing step 
-	({\tt processing\_summary.txt}). (Not always accurate - you
-	should probably check your file sizes yourself.)
+	({\tt processing\_summary.txt}). 
 \end{itemize}
 
+Note that the information in these files is not always accurate - you
+should probably do more thorough quality control yourself.
+
 \subsection{RDP}
-This folder contains the RDP-assigned OTU table. It has one file:
+This folder contains the RDP-assigned OTU tables. It has two files:
 \begin{itemize}
 	\item {\tt myDataset.otu\_table.N.denovo.rdp\_assigned}: OTU table with denovo OTUs assigned Latin names with RDP. OTUs are in rows and samples are in columns. OTU names are of the format: \begin{verbatim}
  k__kingdom;p__phylum;c__class;o__order;f__family;g__genus;s__species;
  d__denovoID
 \end{verbatim} where the denovoID corresponds to the respective sequence in {\tt ../myDataset.otu\_seqs.N.fasta}.
+	\item {\tt myDataset.otu\_table.dbOTU.rdp\_assigned}: OTU table with distribution-based OTUs assigned Latin names with RDP. OTUs are in rows and samples are in columns. OTU names are of the format: \begin{verbatim}
+ k__kingdom;p__phylum;c__class;o__order;f__family;g__genus;s__species;
+ d__dbotuID
+\end{verbatim} where the dbotuID corresponds to the respective sequence in {\tt ../myDataset.otu\_seqs.dbOTU.fasta}.
 \end{itemize}
 
 \subsection{GG}
@@ -470,8 +491,25 @@ The pipeline produces various OTU tables.  All tables are constructed from the s
 \subsubsection{\textit{de novo} OTU tables}
 The dereplicated reads are clustered to within the specified sequence similarity percentage cut-off ({\tt OTU\_SIMILARITY}, default: 97) using {\tt usearch}.  Individual reads are assigned either as the OTU centroid or as a match. Centroids are labeled as 'OTU\_ID.0' and matches count from 'OTU\_ID.1' onwards.  These are separate oligotypes within the OTU 'OTU\_ID'. All oligotype counts are then collapsed to their respective OTU, resulting in a fully \textit{de novo} OTU table which can be found in the filename {\tt datasetID.otu\_table.*.denovo} where '{\tt *}' gets replaced by the OTU similarity cut-off.
 
+\subsubsection{Distribution-based OTU tables}
+A counts table is made from the dereplicated reads and 
+dereplication map. The counts table and dereplicated reads are
+used as inputs to \texttt{dbotu.py}'s \texttt{call\_otus()} function.
+Briefly, sequences are compared against existing OTU representative sequences in descending abundance order.
+If the candidate sequence's abundance is within the \texttt{ABUNDANCE\_CRITERIA} of an existing OTU and its count distribution
+across samples is not significantly different from the OTU's, then
+the candidate sequence is grouped with that OTU.
+You can learn more about the distribution-based clustering algorithm at \texttt{http://almlab.mit.edu/dbotu3.html}.
+
+Intermediate files such as the membership file (which lists which
+sequences belong to which OTU) and the table of sequence counts
+(used as an input to the \texttt{dbotu.py} function call)
+are in the respective \texttt{/home/ubuntu/proc/} folder for your dataset.
+
 \subsubsection{Closed-reference OTU table}
-There are two types of database-referencing that are outputed from the pipeline by default.  The first is assignments from the Ribosomal Database Project (RDP), which returns probabilistic assignments.  The default probability cut-off below which an assignment is labeled as unidentified at a given taxonomic level is 0.5, but this can be set using a summary file parameter {\tt RDP\_CUTOFF}.  This OTU table can be found in the results sub-folder called 'RDP'.
+There are two types of database-referencing that are outputed from the pipeline by default.  The first is assignments from the Ribosomal Database Project (RDP), which returns probabilistic assignments.  The default probability cut-off below which an assignment is labeled as unidentified at a given taxonomic level is 0.5, but this can be set using a summary file parameter {\tt RDP\_CUTOFF}.  This OTU table can be found in the results sub-folder called 'RDP'. 
+The full classifications can be found in \texttt{/home/ubuntu/proc/}, in
+\texttt{RDP\_classifications.denovo.txt} or \texttt{RDP\_classifications.dbOTU.txt}.
 
 The dereplicated reads are also aligned to a standard database (GreenGenes in the case of 16S sequences and UNITE in the case of ITS sequences).  In the case of GreenGenes, the database is determined based on the specified OTU similarity cut-off: e.g. {\tt 97\_otus.fasta} for {\tt OTU\_SIMILARITY} set to 97).  The alignment is performed using {\tt usearch}, and considers the top 10 hits.  Consensus assignments are then produced for the top 1, top 3, top 5 and top 10 hits (where a taxonomic level is only assigned a latin name if the top N hits from GreenGenes agree), and the corresponding OTU tables are output.  Thus, the OTU table called {\tt datasetID.otu\_table.*.gg.consensus10} contains latin names which are formed from a minimum consensus of the top 10 hits for each taxonomic level, where '{\tt *}' gets replaced by the OTU similarity cut-off.  Levels are left unidentified (e.g. '{\tt s\_\_}') if the consensus requirement is not met.  
 
@@ -489,12 +527,12 @@ they are simply the unique sequences within each OTU.
 
 There is currently one such table output: the full \textit{de novo} oligotype table (where sequences are labeled according to a fully \textit{de novo} OTU clustering process) - \\{\tt myDataset.otu\_table.N.denovo\_oligotypes}
 
-\section{Source code - Python modules}
+\section{Source code}
 The following code can all be in \texttt{/home/ubuntu/scripts}. Some of these scripts
 are used by the pipeline, others are not currently incorporated but may still prove
 useful to your 16S-related work.
 
-\subsection{Modules}
+\subsection{Python modules}
 \begin{itemize}
   \item {\tt Formatting.py} - Module to house miscellaneous formatting methods, e.g. conversion from classic dense format to BIOM format, OTU table transposition, etc.
 	\item {\tt QualityControl.py} - Methods for quality control diagnostics on a dataset.
@@ -505,13 +543,17 @@ useful to your 16S-related work.
 	\item {\tt Phylogeny.py} - Methods for phylogenetic feature extraction, e.g. left/right (LR) abundance ratios at each node of a phylogenetic tree.
 	\item {\tt Analytics.py} - Generic statistical analysis tools, e.g. Wilcoxon tests across all available taxa.
 	\item {\tt Regressions.py} - Performs different types of regressions \textit{en masse}.
-	\item {\tt FileManipulations.py} - Methods for reading and moving around raw data files.
+	\item {\tt PipelineFilesInterface.py} - Methods for reading and moving around raw data files 
+	and for reading specific groups of attributes from the summary file.
 \end{itemize}
 
 \subsection{Scripts and routines}
 \begin{itemize}
 	\item {\tt Master.py} - Master script that calls relevant processing pipelines, e.g. {\tt raw2otu.py}.
 	\item {\tt raw2otu.py} - Pipeline for converting raw 16S FASTQ sequence files to OTU tables.  Handles parallelization requirements in these processing steps automatically.  Takes as input a directory that contains a summary file and the raw data.
+	\item{ \tt dbotu.py} - Module for doing distribution-based OTU calling.
+	\item {\tt rdp\_classify.py} - Wrapper for calling the RDP classifier jar file, \\
+	found at \tt /home/ubuntu/tools/RDPTools/classifier.jar.
 \end{itemize}
 
 \section{Troubleshooting}
@@ -613,6 +655,18 @@ In addition, file outputs from each step of the pipeline can be found in {\tt /h
 	\hline
 	{\tt UNITE\_ALIGN} & Specific to ITS sequences.  True/False flag for whether \\
 	& UNITE alignments are desired.  Defaults to 'True' if unspecified. \\
+	\hline
+        {\tt DBOTU} & Whether to perform distribution-based OTU calling. \\
+         &  Defaults to {\tt True} if unspecified. \\
+	\hline
+        {\tt ABUNDANCE\_CRITERIA} & Abundance criteria for distribution-based OTU calling. \\
+         &  Defaults to 10 if unspecified. \\
+	\hline
+        {\tt DISTANCE\_CRITERIA} & Distance criteria for distribution-based OTU calling. \\
+         &  Defaults to 0.1 if unspecified. \\
+	\hline
+        {\tt DBOTU\_PVAL} & P value cutoff for distribution-based OTU calling. \\
+         &  Defaults to 0.0005 if unspecified. \\
 	\hline
 	{\tt OUTDIR} & Full path to processing directory. Defaults \\
 	& to {\tt /home/ubuntu/proc/} if not specified. \\
