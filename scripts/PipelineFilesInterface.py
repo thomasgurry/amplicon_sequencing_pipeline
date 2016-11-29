@@ -72,7 +72,7 @@ def parse_dbotu_parameters(summary_obj, amplicon_type):
         try:
             abund = summary_obj.attribute_value_16S['ABUNDANCE_CRITERIA']
         except:
-            abund = 10
+            abund = 10.0
         try:
             pval = summary_obj.attribute_value_16S['DBOTU_PVAL']
         except:
@@ -90,7 +90,7 @@ def parse_dbotu_parameters(summary_obj, amplicon_type):
         try:
             abund = summary_obj.attribute_value_ITS['ABUNDANCE_CRITERIA']
         except:
-            abund = 10
+            abund = 10.0
         try:
             pval = summary_obj.attribute_value_ITS['DBOTU_PVAL']
         except:
