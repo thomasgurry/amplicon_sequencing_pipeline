@@ -240,15 +240,17 @@ The pipeline assigns taxonomies to \textit{de novo} OTUs using the naive-Bayes R
 classifier. By default, the confidence cutoff is 0.5. You can specify a different
 value with the \texttt{RDP\_CUTOFF} attribute.
 
-\subsection{Distribution-based OTU calling}
+\subsubsection{Distribution-based OTU calling}
 
-The pipeline also performs distribution-based clustering \footnote{http://almlab.mit.edu/dbotu3.html}. 
+The pipeline also performs distribution-based OTU calling\footnote{http://almlab.mit.edu/dbotu3.html}. 
 You can set the abundance, distance and p value criteria
-in the summary file attributes \texttt{DISTANCE\_CRITERIA}, \texttt{ABUNDANCE\_CRITERIA}, and \texttt{DBOTU\_PVAL}.
+in the summary file attributes \texttt{DISTANCE\_CRITERIA}, \\
+\texttt{ABUNDANCE\_CRITERIA}, and \texttt{DBOTU\_PVAL}.
 
-Distribution-based clustering is performed by default. If you find
+Distribution-based clustering is performed by default, in addition
+to the \textit{denovo} and closed-reference methods. If you find
 that it's breaking or it takes too long, you can turn it off by setting
-the sumamry file attribute \texttt{DBOTU} to \texttt{False}.
+the summary file attribute \texttt{DBOTU} to \texttt{False}.
 
 \subsection{Sample summary files}
 
