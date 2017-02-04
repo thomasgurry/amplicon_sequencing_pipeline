@@ -401,6 +401,8 @@ def compute_oligotype_table(raw_trimmed, raw_dereplicated, clustering_file, sepa
     #       'oligotype_table_filename' = output filename
     #
     # 1. get sequence counts
+    #     x has x[seq][sample] = count (of that sequence in that sample),
+    #     where seq is the ATCG sequence in raw_trimmed fasta file
     x, samples = pull_counts(raw_trimmed, separator)
 
     # 2. populate sequence lookup 
@@ -423,7 +425,8 @@ def compute_oligotype_table(raw_trimmed, raw_dereplicated, clustering_file, sepa
             if split_line[1] == 'match' or split_line[1] == "otu":
                 OTU_lookup[seqID] = split_line[4]
     
-    # 4.  Populate dictionaries with each sequence within an OTU.  Each of the three dictionaries contain lists whose entries are ordered in the same manner in each dict.
+    # 4.  Populate dictionaries with each sequence within an OTU.  Each of the three dictionaries contain lists whose 
+    # entries are ordered in the same manner in each dict.
 
     OTU_oligos = {}         # OTU_ID <--> ['ACAGT','ACAAT', ...] 
     OTU_original_seqIDs = {}  # OTU_ID <--> [seqID1, seqID2, ...] (original sequence IDs for oligotypes)
@@ -817,7 +820,7 @@ def extract_dbotu_otu_seqs(membershipfn, fasta_derep, otu_seqs_fn):
         lines = f.readlines()
     otu_reps = [l.split('\t')[0] for l in lines]
 
-    ## Grad OTU representative seqs in membership file from dereplicated fasta
+    ## Grab OTU representative seqs in membership file from dereplicated fasta
     ## and write to output
     with open(otu_seqs_fn, 'w') as out:
         for record in util.iter_fst(fasta_derep):
