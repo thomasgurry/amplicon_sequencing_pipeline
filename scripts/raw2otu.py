@@ -740,6 +740,18 @@ try:
 except:
     pass
 
+# RDP assignment text file
+try:
+    os.system('cp ' + RDP_classifications + ' ' + dataset_folder + '/RDP')
+except:
+    pass
+
+if dbotu_flag == "True":
+    try:
+        os.system('cp ' + dbotu_RDP_classifications + ' ' + dataset_folder + '/RDP')
+    except:
+        pass
+
 # OTU sequences
 os.system('cp ' + OTU_sequences_fasta + ' ' + dataset_folder + '/.')
 os.system('cp ' + fasta_dereplicated + ' ' + dataset_folder + '/.')
