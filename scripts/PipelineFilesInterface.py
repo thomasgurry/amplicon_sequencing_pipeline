@@ -64,7 +64,7 @@ def parse_dbotu_parameters(summary_obj, amplicon_type):
         try:
             dbotu_flag = summary_obj.attribute_value_16S['DBOTU']
         except:
-            dbotu_flag = 'True'
+            dbotu_flag = 'False'
         try:
             dist = summary_obj.attribute_value_16S['DISTANCE_CRITERIA']
         except:
@@ -82,7 +82,7 @@ def parse_dbotu_parameters(summary_obj, amplicon_type):
         try:
             dbotu_flag = summary_obj.attribute_value_ITS['DBOTU']
         except:
-            dbotu_flag = 'True'
+            dbotu_flag = 'False'
         try:
             dist = summary_obj.attribute_value_ITS['DISTANCE_CRITERIA']
         except:

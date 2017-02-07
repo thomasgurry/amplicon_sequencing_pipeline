@@ -247,10 +247,8 @@ You can set the abundance, distance and p value criteria
 in the summary file attributes \texttt{DISTANCE\_CRITERIA}, \\
 \texttt{ABUNDANCE\_CRITERIA}, and \texttt{DBOTU\_PVAL}.
 
-Distribution-based clustering is performed by default, in addition
-to the \textit{denovo} and closed-reference methods. If you find
-that it's breaking or it takes too long, you can turn it off by setting
-the summary file attribute \texttt{DBOTU} to \texttt{False}.
+Distribution-based clustering is \textbf{not} performed by default. 
+You can turn it on by setting the summary file attribute \texttt{DBOTU} to \texttt{False}.
 
 \subsection{Sample summary files}
 
@@ -659,7 +657,7 @@ In addition, file outputs from each step of the pipeline can be found in {\tt /h
 	& UNITE alignments are desired.  Defaults to 'True' if unspecified. \\
 	\hline
         {\tt DBOTU} & Whether to perform distribution-based OTU calling. \\
-         &  Defaults to {\tt True} if unspecified. \\
+         &  Defaults to {\tt False} if unspecified. \\
 	\hline
         {\tt ABUNDANCE\_CRITERIA} & Abundance criteria for distribution-based OTU calling. \\
          &  Defaults to 10 if unspecified. \\
