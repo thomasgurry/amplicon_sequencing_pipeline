@@ -796,11 +796,13 @@ def call_dbotus(seq_table_fn, fasta_fn, output_fn, dist_crit, abund_crit, pval_c
     Call dbOTUs and rename sequences in OTU table as 'dbotu<seq>'
     """
     # call dbotus
+    print('[[DBOTU]] Calling distribution-based OTUs...')
     dbotu.call_otus(seq_table_fn, fasta_fn, output_fn, dist_crit, abund_crit, pval_crit, open(logfn, 'w'), open(membershipfn, 'w'))
     # rename OTUs with dbotu prefix
     otutable = pd.read_csv(output_fn, sep='\t', index_col=0)
     otutable.index = ['dbotu' + str(i) for i in otutable.index]
     otutable.to_csv(output_fn, sep='\t')
+    print('[[DBOTU]] Complete.')
     return None
 
 def extract_dbotu_otu_seqs(membershipfn, fasta_derep, otu_seqs_fn):
