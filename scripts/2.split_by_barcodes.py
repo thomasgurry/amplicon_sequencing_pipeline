@@ -12,7 +12,7 @@ def parse_args():
     parser.add_argument('-b', default='', help='Barcodes file (samples -> barcodes)', required=True)
     parser.add_argument('-B', default='', help='Barcodes file format', choices=['fasta', 'tab'], required=True)
     parser.add_argument('-i', default='', help='Index file (seqs -> barcodes)')
-    parser.add_argument('-I', default='', help='Index file format', choices=['fasta', 'tab'])
+    parser.add_argument('-I', default='', help='Index file format', choices=['fasta', 'fastq', 'tab'])
     parser.add_argument('-d', default=0, help='Max barcode differences', type=int)
     parser.add_argument('-w', default=5, help='Search positions 1-w for barcode', type=int)
     parser.add_argument('--mode', default=1, type=int, help='Barcodes in [1] seqids, [2] seqs, [3] index file', choices=[1,2,3], required=True)
@@ -62,12 +62,21 @@ def parse_index_file(index_fn, format='fasta'):
     # Case 1: index file is FASTA format
     if format=='fasta':
         for [s,b] in util.iter_fst(index_fn):
-            s2b[s] = b
+            # note: I'm pretty sure this won't work for downstream, because you need
+            # to remove the first character from sequence ID
+            s2b[s] = b  
     # Case 2: index file is tab-delimited
     elif format=='tab':
         for line in open(index_fn):
             [s,b] = line.rstrip().split()
             s2b[s] = b
+    # Case 3: index file is FASTQ format
+    elif format=='fastq':
+        for [s,b,_,_] in util.iter_fsq(index_fn):
+            # If sequence ID has :Y:0: thing at the end (standard Illumina format), remove it
+            # For this kind of fastq line: @SL-MAJ:AY3TB170104:AY3TB:1:1101:10000:7854 :N:0:
+            s = s.rsplit(' ', 1)[0]
+            s2b[s[1:]] = b
     return s2b
 
 
@@ -161,6 +170,11 @@ def run():
         
         # Case 3: barcodes are in index file
         elif args.mode == 3:
+            # Just in case this is Illumina data with the :Y:0: suffix,
+            # remove it from the sequence ID. (When we made s2b from the
+            # index file, we removed that suffix too, since merged reads
+            # automatically have it removed by usearch.)
+            sid = sid.rsplit(' ', 1)[0]
             # Get barcode from index file
             b = s2b[sid]
             # Find best matching sample
@@ -174,4 +188,5 @@ def run():
             out.write('\n'.join(record) + '\n')
     out.close()
 
-run()
+if __name__ == "__main__":
+    run()
