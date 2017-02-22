@@ -44,6 +44,57 @@ def split_file_and_return_names(raw_data_file):
 ##% Functions to parse specific summary_file attributes for 
 ##% different raw2otu.py processes
 ##########################################################################
+def parse_barcodes_parameters(summary_obj, amplicon_type):
+    """
+    Parses parameters used in splitting by barcodes.
+    
+    Parameters
+    ----------
+    summary_obj         SummaryParser object
+    amplicon_type       '16S' or 'ITS'
+
+    Returns
+    -------
+    mode                 str,  either '1', '2', or '3' - indicating
+                         barcodes mode to pass to 
+                         2.split_by_barcodes.py
+    index_file           str, If mode '3' is given, the INDEX_FILE 
+                         location, otherwise returns None.
+    index_file_format    str (default = 'fastq'). 'fastq', 'fasta',
+                         or 'tab' - for use in 2.split_by_barcodes.py
+    """
+    if amplicon_type == '16S':
+        mode = summary_obj.attribute_value_16S['BARCODES_MODE']
+        # If barcodes are in index file, get those parameters
+        if mode == '3':
+            try:
+                index_file = summary_obj.attribute_value_16S['INDEX_FILE']
+            except:
+                raise NameError("Barcodes mode 3 specified (barcodes are in index file), but no INDEX_FILE provided.")
+            try:
+                index_file_format = summary_obj.attribute_value_16S['INDEX_FORMAT']
+            except:
+                index_file_format = 'fastq'
+        else:
+            index_file = None
+            index_file_format = None
+    elif amplicon_type == 'ITS':
+        mode = summary_obj.attribute_value_ITS['BARCODES_MODE']
+        # If barcodes are in index file, get those parameters
+        if mode == '3':
+            try:
+                index_file = summary_obj.attribute_value_ITS['INDEX_FILE']
+            except:
+                raise NameError("Barcodes mode 3 specified (barcodes are in index file), but no INDEX_FILE provided.")
+            try:
+                index_file_format = summary_obj.attribute_value_ITS['INDEX_FORMAT']
+            except:
+                index_file_format = 'fastq'
+        else:
+            index_file = None
+            index_file_format = None
+    return mode, index_file, index_file_format
+
 def parse_dbotu_parameters(summary_obj, amplicon_type):
     """
     Parses summary file for dbOTU options.

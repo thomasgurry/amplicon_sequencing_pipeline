@@ -314,10 +314,7 @@ if (options.split_by_barcodes == 'True' and options.primers_removed == 'True' an
 # Step 2 - loop through these split files
 # Step 2.1 - demultiplex, i.e. sort by barcode
 if (options.split_by_barcodes == 'False' and options.multiple_raw_files == 'False'):
-    if amplicon_type == '16S':
-        mode = summary_obj.attribute_value_16S['BARCODES_MODE']
-    elif amplicon_type == 'ITS':
-        mode = summary_obj.attribute_value_ITS['BARCODES_MODE']
+    mode, index_file, index_file_format = pipeIO.parse_barcodes_parameters(summary_obj, amplicon_type)
     pool = mp.Pool(cpu_count)
     filenames = split_filenames
     newfilenames = [f + '.sb' for f in filenames]

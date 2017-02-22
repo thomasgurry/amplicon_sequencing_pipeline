@@ -156,16 +156,32 @@ def split_by_barcodes((fastq_in, fastq_out, barcodes_map, mode)):
     os.system('python ~/scripts/2.split_by_barcodes.py -q ' + fastq_in + ' -b ' + barcodes_map + ' -B tab -d 1 --mode ' + mode + ' -o ' + fastq_out)
     return None
 
-def split_by_barcodes_FASTQ((fastq_in, fastq_out, barcodes_map, mode)):
+def split_by_barcodes_FASTQ((fastq_in, fastq_out, barcodes_map, mode, index_file, index_file_format)):
     # Split by barcodes
     print "[[ Splitting by barcodes ]] ..."
-    os.system('python ~/scripts/2.split_by_barcodes.py -q ' + fastq_in + ' -b ' + barcodes_map + ' -B tab -d 1 --mode ' + mode + ' -o ' + fastq_out)
+    if mode == '3':
+        os.system('python ~/scripts/2.split_by_barcodes.py -q ' + 
+                  fastq_in + ' -b ' + barcodes_map + ' -B tab ' +
+                  '-d 1 --mode ' + mode + ' -I ' + index_file_format + 
+                  ' -i ' + index_file + ' -o ' + fastq_out)
+    else:
+        os.system('python ~/scripts/2.split_by_barcodes.py -q ' + 
+                  fastq_in + ' -b ' + barcodes_map + ' -B tab ' +
+                  '-d 1 --mode ' + mode + ' -o ' + fastq_out)        
     return None
 
-def split_by_barcodes_FASTA((fasta_in, fasta_out, barcodes_map, mode)):
+def split_by_barcodes_FASTA((fasta_in, fasta_out, barcodes_map, mode, index_file, index_file_format)):
     # Split by barcodes
     print "[[ Splitting by barcodes ]] ..."
-    os.system('python ~/scripts/2.split_by_barcodes.py -f ' + fasta_in + ' -b ' + barcodes_map + ' -B tab -d 1 --mode ' + mode + ' -o ' + fasta_out)
+    if mode == '3':
+        os.system('python ~/scripts/2.split_by_barcodes.py -f ' + 
+                  fasta_in + ' -b ' + barcodes_map + ' -B tab ' +
+                  '-d 1 --mode ' + mode + ' -I ' + index_file_format +
+                  ' -i ' + index_file + ' -o ' + fasta_out)
+    else:
+        os.system('python ~/scripts/2.split_by_barcodes.py -f ' + 
+                  fasta_in + ' -b ' + barcodes_map + ' -B tab ' +
+                  '-d 1 --mode ' + mode + ' -o ' + fasta_out)
     return None
 
 def replace_seqIDs_for_demultiplexed_files((fastq_in, fastq_out, sampleID)):
