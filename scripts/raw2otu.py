@@ -689,7 +689,10 @@ except:
 QC.sample_read_counts(OTU_table_denovo, QCpath)
 
 # Write out number of reads thrown out at each step
-QC.reads_thrown_out_at_each_step(raw_filenames, processing_summary_file)
+if options.paired_end != "True":
+    QC.reads_thrown_out_at_each_step(raw_filenames, processing_summary_file)
+else:
+    print("FYI calculating reads thrown out at each step isn't supported for unmerged data, don't worry about it though.")
 
 
 #################################################
