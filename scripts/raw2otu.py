@@ -210,6 +210,7 @@ os.chdir(working_directory)
 # Checkpoint - single or multiple raw files?  If multiple, the assumption is they are demultiplexed, where each raw file corresponds to a single sample's reads.
 if options.multiple_raw_files == 'False':
     
+    # These split_filenames are xaa, xab, etc...
     split_filenames = pipeIO.split_file_and_return_names(raw_data_file)
     raw_filenames = split_filenames
 
@@ -226,6 +227,7 @@ if options.multiple_raw_files == 'False':
         # Split the reverse file
         rev_split_filenames = pipeIO.split_file_and_return_names(raw_data_file.strip(fwd_suffix) + rev_suffix)
         # For user's sake, also rename these with the right suffix
+        # Currently they're name xaa, xab, etc. Rename them to be xaa_revsuffix, xab_revsuffix, etc.
         for i in rev_split_filenames:
             os.system('mv ' + i + ' ' + i + rev_suffix)
         rev_split_filenames = [i + rev_suffix for i in rev_split_filenames]    
@@ -263,7 +265,9 @@ else:
     split_filenames = raw_filenames
     
     # If separate forward and reverse reads, also copy reverse files
-    # And set up stuff to do merging (should maybe put some of this above)
+    # Note that the fastq_filemap has the full names of the forward reads
+    # and so we don't need to re-name them above. The reverse file names
+    # need to be pieced together from the forward reads and the rev_suffix.
     if options.paired_end == "True":
         # Get the original reverse read file names
         revfiles_homedir = [i.split(fwd_suffix)[0] + rev_suffix for i in raw_filenames_homedir]
@@ -276,6 +280,7 @@ else:
                 os.system(cmd_str)
             else:
                 print(revfiles_homedir[i] + ' already copied. Skipping.')
+        rev_split_filenames = revfiles_wdir
 
 # Prepare for using parallel threads as a function of the number of CPUs
 cpu_count = mp.cpu_count()
