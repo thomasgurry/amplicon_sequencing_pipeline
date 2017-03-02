@@ -44,6 +44,82 @@ def split_file_and_return_names(raw_data_file):
 ##% Functions to parse specific summary_file attributes for 
 ##% different raw2otu.py processes
 ##########################################################################
+def parse_input_files(options, summary_obj, amplicon_type):
+    """
+    Parses the raw data file input and returns the file name
+    and file type.
+
+    Parameters
+    ----------
+    options                 The options that were passed to raw2otu.py.
+                            Should have options.input_dir
+    summary_obj             SummaryParser object
+    amplicon_type           '16S' or 'ITS'
+    
+    Returns
+    -------
+    raw_data_summary_file   raw data file path (i.e. input_dir/raw_file), where
+                            raw_file is either one sequence file or a tab-delimited
+                            fastq-to-sample ID map.
+    raw_file_type           'FASTQ' or 'FASTA'
+    barcodes_map            barcodes map file
+    primers_files           primers file
+    """
+
+    # Extract file locations
+    if amplicon_type == '16S':
+        primers_file = os.path.join(options.input_dir, summary_obj.attribute_value_16S['PRIMERS_FILE'])
+        barcodes_map = os.path.join(options.input_dir, summary_obj.attribute_value_16S['BARCODES_MAP'])
+        try:
+            raw_data_file = os.path.join(options.input_dir, summary_obj.attribute_value_16S['RAW_FASTQ_FILE'])
+            raw_file_type = 'FASTQ'
+        except:
+            print("No single raw FASTQ file found.  Checking for raw FASTA.")
+            try:
+                raw_data_file = os.path.join(options.input_dir, summary_obj.attribute_value_16S['RAW_FASTA_FILE'])
+                raw_file_type = 'FASTA'
+            except:
+                print("No single raw FASTA file found either.  Checking for multiple files.")
+                try:
+                    raw_data_summary_file = os.path.join(options.input_dir, summary_obj.attribute_value_16S['RAW_FASTQ_FILES'])
+                    raw_file_type = 'FASTQ'
+                except:
+                    print("No filename of multiple raw FASTQs map provided.  Check contents of your raw data and summary file.")
+                    try:
+                        raw_data_summary_file = os.path.join(options.input_dir, summary_obj.attribute_value_16S['RAW_FASTA_FILES'])
+                        raw_file_type = 'FASTA'
+                    except:
+                        print("No filename of multiple raw FASTAs map provided.  Check contents of your raw data and summary file.")
+                        raise NameError("Unable to retrieve raw sequencing files.")
+
+    elif amplicon_type == 'ITS':
+        primers_file = os.path.join(options.input_dir, summary_obj.attribute_value_ITS['PRIMERS_FILE'])
+        barcodes_map = os.path.join(options.input_dir, summary_obj.attribute_value_ITS['BARCODES_MAP'])
+        try:
+            raw_data_file = os.path.join(options.input_dir, summary_obj.attribute_value_ITS['RAW_FASTQ_FILE'])
+            raw_file_type = 'FASTQ'
+        except:
+            print("No single raw FASTQ file found.  Checking for raw FASTA.")
+            try:
+                raw_data_file = os.path.join(options.input_dir, summary_obj.attribute_value_ITS['RAW_FASTA_FILE'])
+                raw_file_type = 'FASTA'
+            except:
+                print("No single raw FASTA file found either.  Checking for multiple files.")
+                try:
+                    raw_data_summary_file = os.path.join(options.input_dir, summary_obj.attribute_value_ITS['RAW_FASTQ_FILES'])
+                    raw_file_type = 'FASTQ'
+                except:
+                    print("No filename of multiple raw FASTQs map provided.  Check contents of your raw data and summary file.")
+                    raise NameError("Unable to retrieve raw sequencing files.")
+                    try:
+                        raw_data_summary_file = os.path.join(options.input_dir, summary_obj.attribute_value_ITS['RAW_FASTA_FILES'])
+                        raw_file_type = 'FASTA'
+                    except:
+                        print("No filename of multiple raw FASTAs map provided.  Check contents of your raw data and summary file.")
+                        raise NameError("Unable to retrieve raw sequencing files.")
+
+    return primers_files, barcodes_map, raw_data_file, raw_file_type
+
 def parse_barcodes_parameters(summary_obj, amplicon_type):
     """
     Parses parameters used in splitting by barcodes.
