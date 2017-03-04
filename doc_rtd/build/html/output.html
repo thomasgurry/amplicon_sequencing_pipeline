@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Pipeline output files and directories &#8212; amplicon_sequencing_pipeline_doc  documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Running the pipeline" href="running.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="pipeline-output-files-and-directories">
+<h1>Pipeline output files and directories<a class="headerlink" href="#pipeline-output-files-and-directories" title="Permalink to this headline">¶</a></h1>
+<p>The pipeline outputs different OTU tables and corresponding
+representative sequences. All final outputs can be found in the
+<code class="docutils literal"><span class="pre">processing_results</span></code> folder, under a sub-directory labeled
+<code class="docutils literal"><span class="pre">myDataset_results</span></code>. Files in this directory are labeled systematically,
+usually with the format
+<code class="docutils literal"><span class="pre">myDataset.file_description.otu_similarity.file_type</span></code>.</p>
+<div class="section" id="top-directory">
+<h2>Top directory<a class="headerlink" href="#top-directory" title="Permalink to this headline">¶</a></h2>
+<p>Files in the top results directory are as follows:</p>
+<ul class="simple">
+<li><strong>myDataset.otu_seqs.N.fasta</strong>: FASTA file with the representative
+sequences for the denovo OTUs, clustered at N%.</li>
+<li><strong>myDataset.otu_seqs.dbOTU.fasta</strong>: FASTA file with the representative
+sequences for the distribution-based OTUs.</li>
+<li><strong>myDataset.otu_table.N.denovo</strong>: OTU table with N% denovo OTUs labeled
+denovo1, denovo2, ... in the rows and samples in the columns.</li>
+<li><strong>myDataset.otu_table.N.dbOTU</strong>: OTU table with distribution-based OTUs
+labeled dbotu1, dbotu2, ... in the rows and samples in the columns.</li>
+<li><strong>myDataset.otu_table.N.denovo_oligotypes</strong>: OTU table with N% denovo
+OTUs separated into unique oligotypes. Each OTU is labeled denovo1.1,
+denovo1.2, denovo2.1, denovo2.2, denovo2.3, etc. The first number
+corresponds to the parent denovo OTU number; the second is the
+oligotype number. Oligotypes are calculated as each unique sequence
+within an OTU cluster.</li>
+<li><strong>myDataset.raw_dereplicated.fasta</strong>: FASTA file with all unique
+sequences in the dataset. Only sequences which appear more times than
+the <code class="docutils literal"><span class="pre">MIN_COUNT</span></code> specified in the summary file are included (default
+value for <code class="docutils literal"><span class="pre">MIN_COUNT</span></code> is 10).</li>
+<li><strong>summary_file.txt</strong>: Updated summary file containing original
+processing request and resulting file names.</li>
+</ul>
+<p>Also within each dataset’s <code class="docutils literal"><span class="pre">processing_results</span></code> directory, 3
+sub-directories are created:</p>
+</div>
+<div class="section" id="quality-control">
+<h2>Quality control<a class="headerlink" href="#quality-control" title="Permalink to this headline">¶</a></h2>
+<p>Within the results folder, there is a subfolder called <code class="docutils literal"><span class="pre">quality_control</span></code>,
+which contains various plots diagnostic of dataset quality. Currently,
+the pipeline outputs:</p>
+<ul class="simple">
+<li>Histogram showing distribution of read lengths, taken from the first
+100,000 reads in the raw FASTQ file.</li>
+<li>Bar chart showing number of reads per sample.</li>
+<li>File showing percentage of reads thrown out at each processing step
+(<code class="docutils literal"><span class="pre">processing_summary.txt</span></code>).</li>
+</ul>
+<p>Note that the information in these files is not always accurate - you
+should probably do more thorough quality control yourself.</p>
+</div>
+<div class="section" id="rdp">
+<h2>RDP<a class="headerlink" href="#rdp" title="Permalink to this headline">¶</a></h2>
+<p>This folder contains the RDP-assigned OTU tables. It has two files:</p>
+<ul>
+<li><p class="first"><strong>myDataset.otu_table.N.denovo.rdp_assigned</strong>: OTU table with denovo
+OTUs assigned Latin names with RDP. OTUs are in rows and samples are
+in columns. OTU names are of the format:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">k__kingdom</span><span class="p">;</span><span class="n">p__phylum</span><span class="p">;</span><span class="n">c__class</span><span class="p">;</span><span class="n">o__order</span><span class="p">;</span><span class="n">f__family</span><span class="p">;</span><span class="n">g__genus</span><span class="p">;</span><span class="n">s__species</span><span class="p">;</span>
+<span class="n">d__denovoID</span>
+</pre></div>
+</div>
+<p>where the denovoID corresponds to the respective sequence in
+<code class="docutils literal"><span class="pre">../myDataset.otu_seqs.N.fasta</span></code>.</p>
+</li>
+<li><p class="first"><strong>myDataset.otu_table.dbOTU.rdp_assigned</strong>: OTU table with
+distribution-based OTUs assigned Latin names with RDP. OTUs are in
+rows and samples are in columns. OTU names are of the format:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">k__kingdom</span><span class="p">;</span><span class="n">p__phylum</span><span class="p">;</span><span class="n">c__class</span><span class="p">;</span><span class="n">o__order</span><span class="p">;</span><span class="n">f__family</span><span class="p">;</span><span class="n">g__genus</span><span class="p">;</span><span class="n">s__species</span><span class="p">;</span>
+<span class="n">d__dbotuID</span>
+</pre></div>
+</div>
+<p>where the dbotuID corresponds to the respective sequence in
+<code class="docutils literal"><span class="pre">../myDataset.otu_seqs.dbOTU.fasta</span></code>.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="gg">
+<h2>GG<a class="headerlink" href="#gg" title="Permalink to this headline">¶</a></h2>
+<p>This folder contains the Green Genes-assigned OTU table. It has multiple
+files, which are described further in the following section.</p>
+<ul>
+<li><p class="first"><strong>myDataset.otu_table.N.gg.consensusM</strong>: closed-reference OTU table with
+dereplicated sequences mapped to Green Genes using usearch. OTUs are
+in rows and samples are in columns. OTU names are of the format:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">k__kingdom</span><span class="p">;</span><span class="n">p__phylum</span><span class="p">;</span><span class="n">c__class</span><span class="p">;</span><span class="n">o__order</span><span class="p">;</span><span class="n">f__family</span><span class="p">;</span><span class="n">g__genus</span><span class="p">;</span><span class="n">s__species</span><span class="p">;</span>
+<span class="n">d__derepID</span><span class="o">--</span><span class="n">GGggid</span>
+</pre></div>
+</div>
+<p>where the derepID corresponds to the sequence in
+<code class="docutils literal"><span class="pre">../myDataset.raw_dereplicated.fasta</span></code> with the same ID number.</p>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Pipeline output files and directories</a><ul>
+<li><a class="reference internal" href="#top-directory">Top directory</a></li>
+<li><a class="reference internal" href="#quality-control">Quality control</a></li>
+<li><a class="reference internal" href="#rdp">RDP</a></li>
+<li><a class="reference internal" href="#gg">GG</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="running.html" title="previous chapter">Running the pipeline</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/output.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Thomas Gurry and Claire Duvallet.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/output.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,728 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Preparing your dataset for processing &#8212; amplicon_sequencing_pipeline_doc  documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Running the pipeline" href="running.html" />
+    <link rel="prev" title="Quickstart" href="quickstart.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="preparing-your-dataset-for-processing">
+<span id="preparing-dataset"></span><h1>Preparing your dataset for processing<a class="headerlink" href="#preparing-your-dataset-for-processing" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="raw-data-files">
+<h2>Raw data files<a class="headerlink" href="#raw-data-files" title="Permalink to this headline">¶</a></h2>
+<p>The first step to process your data is to understand what raw data you have.</p>
+<ul class="simple">
+<li>Do you have FASTQ or FASTA data?</li>
+<li>Are your sequences already de-multiplexed with one file per sample, or will you need to split sequences by barcodes?</li>
+<li>Do you have unmerged forward and reverse reads that you’ll need to merge?</li>
+<li>Are the primers still in the sequences?</li>
+<li>Are all reads already all trimmed to a certain length?</li>
+</ul>
+<p>Every sequencing center provides a different kind of “raw data”, so make sure you know
+what you’re starting with! The pipeline takes many different kinds of inputs
+and can perform many different processing steps, so it’s important to
+know what you’ll be needing.</p>
+</div>
+<div class="section" id="summary-file">
+<h2>Summary file<a class="headerlink" href="#summary-file" title="Permalink to this headline">¶</a></h2>
+<p>This file, named summary_file.txt, is a machine-readable,
+<strong>tab-delimited</strong> file that must accompany any dataset directory when
+uploaded to the cloud. It orchestrates all processing that will happen,
+and is where you specify each of your processing requests. It should be
+found in the highest directory level for the dataset directory in the S3
+bucket. It is a text file with descriptors for the data and paths to all
+relevant datafiles within the directory. It can include a True or False
+flag for whether any associated raw 16S/ITS data has already been
+processed. It is case-sensitive.</p>
+<p>The order in which items are listed between the lines <code class="docutils literal"><span class="pre">#16S_start</span></code> and
+<code class="docutils literal"><span class="pre">#16S_end</span></code> (for 16S) and between lines <code class="docutils literal"><span class="pre">#ITS_start</span></code> and <code class="docutils literal"><span class="pre">#ITS_end</span></code> (for
+ITS) does not matter.</p>
+<p>Note that any white space in the summary file should correspond to a
+single tab character.</p>
+</div>
+<div class="section" id="summary-file-format-and-options">
+<h2>Summary file format and options<a class="headerlink" href="#summary-file-format-and-options" title="Permalink to this headline">¶</a></h2>
+<p>The first line in your summary file should be:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">DATASET_ID</span>  <span class="n">myDataset</span>
+</pre></div>
+</div>
+<p>16S and ITS processing parameters are specified by attributes placed on
+separate lines between <code class="docutils literal"><span class="pre">#16S_start</span></code> and <code class="docutils literal"><span class="pre">#16S_end</span></code> and/or
+<code class="docutils literal"><span class="pre">#ITS_start</span></code> and <code class="docutils literal"><span class="pre">#ITS_end</span></code>. All white spaces in the summary file
+should be tabs.</p>
+<p>Required attributes are:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">PRIMERS_FILE</span></code>,</li>
+<li><code class="docutils literal"><span class="pre">BARCODES_MAP</span></code>,</li>
+<li><code class="docutils literal"><span class="pre">PROCESSED</span></code>,</li>
+<li>and one of:<ul>
+<li><code class="docutils literal"><span class="pre">RAW_FASTQ_FILE</span></code>,</li>
+<li><code class="docutils literal"><span class="pre">RAW_FASTQ_FILES</span></code>,</li>
+<li><code class="docutils literal"><span class="pre">RAW_FASTA_FILE</span></code>, or</li>
+<li><code class="docutils literal"><span class="pre">RAW_FASTA_FILES</span></code>.</li>
+</ul>
+</li>
+</ul>
+<p>For processing to occur, <code class="docutils literal"><span class="pre">PROCESSED</span></code> should be <code class="docutils literal"><span class="pre">False</span></code> (case-sensitive).</p>
+<p>The following section will go through all available summary file
+attributes, and are summarized in <a class="reference internal" href="#list-of-16s-and-its-attributes">List of 16S and ITS attributes</a>. These
+options are presented in roughly the same order as they are processed.</p>
+<div class="section" id="input-file-s">
+<h3>Input file(s)<a class="headerlink" href="#input-file-s" title="Permalink to this headline">¶</a></h3>
+<p>The pipeline takes as input many kinds of raw data:</p>
+<p><strong>one FASTQ file.</strong> This file should contain all sequences for all of
+your samples. Sequences may still contain barcodes, or they can have
+had barcodes removed and FASTQ headers replaced with sample
+identifiers. Specify with <code class="docutils literal"><span class="pre">RAW_FASTQ_FILE</span></code>.</p>
+<p><strong>multiple FASTQ files.</strong> Each of these files should contain sequences
+for one sample only. Specify with <code class="docutils literal"><span class="pre">RAW_FASTQ_FILES</span></code>.</p>
+<p><strong>one FASTA file.</strong> This file should contain all sequences for all of
+your samples, and should have a sample identifier in the FASTA header
+line. Specify with <code class="docutils literal"><span class="pre">RAW_FASTA_FILE</span></code>.</p>
+<p><strong>multiple FASTA files.</strong> Each of these files should contain sequences
+for one sample only. Specify with <code class="docutils literal"><span class="pre">RAW_FASTA_FILES</span></code>.</p>
+<p>If you have one sequence file, <code class="docutils literal"><span class="pre">RAW_FASTQ_FILE</span></code> or <code class="docutils literal"><span class="pre">RAW_FASTA_FILE</span></code>
+should refer to the FASTQ/A file name.</p>
+<p>If you have multiple sequence files, <code class="docutils literal"><span class="pre">RAW_FASTQ_FILES</span></code> or <code class="docutils literal"><span class="pre">RAW_FASTA_FILES</span></code>
+should refer to a text file that relates each FASTQ/A file to its sample identifier.
+This text file is tab-delimited with the FASTQ/A file name in the first column and
+the corresponding sample ID in the second column. This text file should
+not contain a header.</p>
+<p>An example <code class="docutils literal"><span class="pre">fastq2sid.txt</span></code> file mapping each FASTQ file to its sample is:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">SRR1324</span><span class="o">.</span><span class="n">fastq</span>    <span class="n">sample1</span>
+<span class="n">SRR1325</span><span class="o">.</span><span class="n">fastq</span>    <span class="n">sample2</span>
+<span class="n">SRR1326</span><span class="o">.</span><span class="n">fastq</span>    <span class="n">sample3</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>Note that all file paths provided should be <em>relative to the summary
+file directory</em>. If your FASTQ to sample ID file map is in a
+subdirectory called <code class="docutils literal"><span class="pre">filemaps/</span></code> and your sequence files are in a
+subdirectory called <code class="docutils literal"><span class="pre">datafiles/</span></code>, then <code class="docutils literal"><span class="pre">RAW_FASTQ_FILES</span></code> would be
+<code class="docutils literal"><span class="pre">filemaps/fastq_filemap.txt</span></code>, and the entries in <code class="docutils literal"><span class="pre">fastq_filemap.txt</span></code>
+would include the <code class="docutils literal"><span class="pre">datafiles/</span></code> prefix (e.g. <code class="docutils literal"><span class="pre">datafiles/SRR1324.fastq</span></code>, etc.)</p>
+</div>
+<div class="section" id="merging">
+<h3>Merging<a class="headerlink" href="#merging" title="Permalink to this headline">¶</a></h3>
+<p>If you have unmerged paired-end reads, you can merge them by setting
+<code class="docutils literal"><span class="pre">MERGE_PAIRS</span></code> to <code class="docutils literal"><span class="pre">True</span></code> (case sensitive). Merging can be performed
+in both the case where your reads are not de-multiplexed (i.e. you have
+one file with <em>all</em> of your forward reads for all of your samples, and
+one file with all of the reverse reads) and when they are (i.e. you have
+two files per sample: one with the forward reads and one with the
+reverse reads).</p>
+<p>If you need to merge reads, you also need to specify the file name
+suffixes for both the forward and reverse read files. These are
+specified in <code class="docutils literal"><span class="pre">FWD_SUFFIX</span></code> and <code class="docutils literal"><span class="pre">REV_SUFFIX</span></code> and default to
+<code class="docutils literal"><span class="pre">_R1.fastq</span></code> and <code class="docutils literal"><span class="pre">_R2.fastq</span></code>, respectively. If you have more
+complicated file names, either rename them to have consistent suffixes,
+or talk to Claire to see if you can incorporate more complicated regex
+matching into the code.</p>
+<p>Note that the files specified either in <code class="docutils literal"><span class="pre">RAW_FASTQ_FILE</span></code> or in the
+<code class="docutils literal"><span class="pre">fastq_filemap.txt</span></code> (specified in <code class="docutils literal"><span class="pre">RAW_FASTQ_FILES</span></code>) should refer to
+the full name of the FASTQ file(s) containing the forward reads.</p>
+<p>See <a class="reference internal" href="#case-4-multiple-demultiplexed-raw-paired-end-fastq-files-of-16s-sequences-which-need-merging">Case 4: multiple demultiplexed raw paired-end FASTQ files of 16S sequences which need merging</a> for an example.</p>
+</div>
+<div class="section" id="de-multiplexing">
+<h3>De-multiplexing<a class="headerlink" href="#de-multiplexing" title="Permalink to this headline">¶</a></h3>
+<p>If your FASTQ file still contains the barcodes in the sequences, you
+will need to include <code class="docutils literal"><span class="pre">BARCODES_MAP</span></code> and <code class="docutils literal"><span class="pre">BARCODES_MODE</span></code> in your
+summary file. <strong>**Note that BARCODES_MAP is a required
+attribute.</strong> If you do not need to de-multiplex your sequences,
+<code class="docutils literal"><span class="pre">BARCODES_MAP</span></code> should be <code class="docutils literal"><span class="pre">None</span></code> (case-sensitive).</p>
+<p><code class="docutils literal"><span class="pre">BARCODES_MAP</span></code> refers to a tab-delimited file which has the sample
+identifiers in the first column and the corresponding barcode sequence
+in the second column. This file does not have a header.</p>
+<p>An example <code class="docutils literal"><span class="pre">BARCODES_MAP</span></code> file could be:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">C01</span>     <span class="n">AGAGACAT</span>
+<span class="n">C03</span>     <span class="n">AGAGATGT</span>
+<span class="n">C05</span>     <span class="n">AGATGTAG</span>
+<span class="n">C07</span>     <span class="n">AGCGATCT</span>
+<span class="n">C09</span>     <span class="n">AGCTCTAG</span>
+<span class="n">C11</span>     <span class="n">AGTACGAG</span>
+</pre></div>
+</div>
+<p>You may also specify a <code class="docutils literal"><span class="pre">BARCODES_MODE</span></code>, which specifies where the
+barcodes are to found in the FASTQ file. If the barcodes are still in
+the sequences, <code class="docutils literal"><span class="pre">BARCODES_MODE</span></code> should be 2. If the barcodes are in the
+FASTQ sequence header, <code class="docutils literal"><span class="pre">BARCODES_MODE</span></code> should be 1. <code class="docutils literal"><span class="pre">BARCODES_MODE</span></code>
+defaults to 2.</p>
+<p>See <a class="reference internal" href="#case-1-raw-fastq-file-of-16s-sequences-still-includes-primers-and-barcodes">Case 1: raw FASTQ file of 16S sequences, still includes primers and barcodes</a> for an example.</p>
+<p>Sometimes, the ’raw’ data has already had primers and barcodes removed
+but still has all samples in the same FASTQ file. In this case,
+<code class="docutils literal"><span class="pre">BARCODES_MAP</span></code> should be <code class="docutils literal"><span class="pre">None</span></code> and the sample IDs must be listed in
+the sequence header lines of the FASTQ file. If there is text other than
+the sample ID in the header, you need to specify the first non-sample ID
+character in <code class="docutils literal"><span class="pre">BARCODES_SEPARATOR</span></code>. For example, sequences in these
+kinds of files are often labeled like:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@sample1_seq1</span>
+<span class="o">...&lt;</span><span class="n">rest</span> <span class="n">of</span> <span class="n">fastq</span> <span class="n">record</span><span class="o">&gt;</span>
+<span class="nd">@sample1_seq2</span>
+<span class="o">...&lt;</span><span class="n">rest</span> <span class="n">of</span> <span class="n">fastq</span> <span class="n">record</span><span class="o">&gt;</span>
+<span class="nd">@sample2@_seq1</span>
+<span class="o">...&lt;</span><span class="n">rest</span> <span class="n">of</span> <span class="n">fastq</span> <span class="n">record</span><span class="o">&gt;</span>
+<span class="nd">@sample3_seq1</span>
+<span class="o">...&lt;</span><span class="n">rest</span> <span class="n">of</span> <span class="n">fastq</span> <span class="n">record</span><span class="o">&gt;</span>
+<span class="nd">@sample2_seq2</span>
+<span class="o">...&lt;</span><span class="n">rest</span> <span class="n">of</span> <span class="n">fastq</span> <span class="n">record</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>In this case, the barcodes separator would be an underscore (<code class="docutils literal"><span class="pre">_</span></code>),
+which is the default.</p>
+</div>
+<div class="section" id="primer-trimming">
+<h3>Primer trimming<a class="headerlink" href="#primer-trimming" title="Permalink to this headline">¶</a></h3>
+<p>If you need to remove primers from your sequences, you can specify
+<code class="docutils literal"><span class="pre">PRIMERS_FILE</span></code>, a text file with your primer sequences. <strong>**Note
+that PRIMERS_FILE is a required attribute.</strong> If you do not need to
+remove primers from your sequences, <code class="docutils literal"><span class="pre">PRIMERS_FILE</span></code> should be <code class="docutils literal"><span class="pre">None</span></code>
+(case sensitive).</p>
+<p>Your primers file should have each primer on its own line and no header:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">CCTACGGGAGGCAGCAG</span>
+<span class="n">ATTACCGCGGCTGCT</span>
+</pre></div>
+</div>
+<p>The pipeline does not currently remove reverse primers. If your
+sequences still contain reverse primers, you can remove them yourself or
+trim your sequences to a length shorter than the start of your reverse
+primer.</p>
+</div>
+<div class="section" id="quality-filtering">
+<h3>Quality filtering<a class="headerlink" href="#quality-filtering" title="Permalink to this headline">¶</a></h3>
+<p>There are two ways to quality filter your sequences. One is based on the
+number of expected errors in your sequence, and the other truncates
+reads after a certain quality is encountered. You can learn more about
+these approaches by reading the USEARCH documentation:
+<a class="reference external" href="http://www.drive5.com/usearch/manual/readqualfiltering.html">http://www.drive5.com/usearch/manual/readqualfiltering.html</a></p>
+<p><strong>To truncate reads after a base with a certain quality is encountered</strong>,
+use the <code class="docutils literal"><span class="pre">QUALITY_TRIM</span></code> option. A default value that is often used is
+25. This step is performed <em>before</em> length trimming.</p>
+<p><strong>To discard reads based on their number of expected errors</strong>, use the
+<code class="docutils literal"><span class="pre">MAX_ERRORS</span></code> option. A default value that is often used is 2 (i.e.
+reads with more than 2 expected errors are discarded). This step is
+performed <em>after</em> length trimming</p>
+<p>If nothing is specified, the pipeline defaults to <code class="docutils literal"><span class="pre">QUALITY_TRIM</span></code> of
+25. If both <code class="docutils literal"><span class="pre">MAX_ERRORS</span></code> and <code class="docutils literal"><span class="pre">QUALITY_TRIM</span></code> are specified, quality
+filtering by truncation is performed (i.e. <code class="docutils literal"><span class="pre">MAX_ERRORS</span></code> is ignored).</p>
+<p>You may also need to specify the encoding of the quality scores.
+<code class="docutils literal"><span class="pre">ASCII_ENCODING</span></code> can be either <code class="docutils literal"><span class="pre">ASCII_BASE_33</span></code> (default) or
+<code class="docutils literal"><span class="pre">ASCII_BASE_64</span></code>. You can check the encoding of your file using
+usearch: <code class="docutils literal"><span class="pre">usearch</span> <span class="pre">-fastq_chars</span> <span class="pre">yourFASTQfile.fastq</span></code></p>
+</div>
+<div class="section" id="length-trimming">
+<h3>Length trimming<a class="headerlink" href="#length-trimming" title="Permalink to this headline">¶</a></h3>
+<p>By default, the pipeline trims all reads to 101 base pairs before
+dereplication and clustering. You can specify a different length by
+using <code class="docutils literal"><span class="pre">TRIM_LENGTH</span></code>. Any reads which are shorter than the specified
+length are discarded.</p>
+</div>
+<div class="section" id="dereplication">
+<h3>Dereplication<a class="headerlink" href="#dereplication" title="Permalink to this headline">¶</a></h3>
+<p>In the dereplication step, unique sequences are identified and the
+samples from which they came are tracked (sometimes referred to as
+“provenancing”). By default, unique sequences which are present fewer
+than 10 times in the entire dataset are discarded. If you want to change
+this number, specify it with <code class="docutils literal"><span class="pre">MIN_COUNT</span></code>. (e.g. if <code class="docutils literal"><span class="pre">MIN_COUNT</span></code> is 2,
+only singleton sequences are discarded).</p>
+</div>
+<div class="section" id="otu-calling">
+<h3>OTU calling<a class="headerlink" href="#otu-calling" title="Permalink to this headline">¶</a></h3>
+<p>You can specify the similarity used to define OTUs in the
+<code class="docutils literal"><span class="pre">OTU_SIMILARITY</span></code> attribute. The default value is 97, corresponding to
+97% OTUs.</p>
+<p>By default, the pipeline clusters OTUs using both <em>de novo</em> and
+closed-reference approaches. If you specify an OTU similarity that does
+not have a corresponding Green Genes reference file, closed-reference
+clustering will not be performed. OTU similarities supported by Green
+Genes closed-reference mapping are: 61, 64, 67, 70, 73, 76, 79, 82, 85,
+88, 91, 94, 97, and 99%. The database files used for this mapping can be
+found in <code class="docutils literal"><span class="pre">/home/ubuntu/databases/gg_13_5_otus/rep_set_latin/</span></code>.</p>
+<p>The pipeline assigns taxonomies to <em>de novo</em> OTUs using the naive-Bayes
+RDP classifier. By default, the confidence cutoff is 0.5. You can
+specify a different value with the <code class="docutils literal"><span class="pre">RDP_CUTOFF</span></code> attribute.</p>
+</div>
+<div class="section" id="distribution-based-otu-calling">
+<h3>Distribution-based OTU calling<a class="headerlink" href="#distribution-based-otu-calling" title="Permalink to this headline">¶</a></h3>
+<p>The pipeline also performs distribution-based OTU calling <a class="footnote-reference" href="#id2" id="id1">[1]</a>. You
+can set the abundance, distance and p value criteria in the summary
+file attributes <code class="docutils literal"><span class="pre">DISTANCE_CRITERIA</span></code>, <code class="docutils literal"><span class="pre">ABUNDANCE_CRITERIA</span></code>, and <code class="docutils literal"><span class="pre">DBOTU_PVAL</span></code>.</p>
+<p>Distribution-based clustering is <strong>not</strong> performed by default. You can
+turn it on by setting the summary file attribute <code class="docutils literal"><span class="pre">DBOTU</span></code> to <code class="docutils literal"><span class="pre">True</span></code>.</p>
+</div>
+</div>
+<div class="section" id="sample-summary-files">
+<h2>Sample summary files<a class="headerlink" href="#sample-summary-files" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="case-1-raw-fastq-file-of-16s-sequences-still-includes-primers-and-barcodes">
+<h3>Case 1: raw FASTQ file of 16S sequences, still includes primers and barcodes<a class="headerlink" href="#case-1-raw-fastq-file-of-16s-sequences-still-includes-primers-and-barcodes" title="Permalink to this headline">¶</a></h3>
+<p>The simplest case is if you have the following files: a raw FASTQ file;
+a file specifying the map between barcode sequences and IDs; and a file
+specifying the primers used. Your summary file would look something like
+this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">DATASET_ID</span>  <span class="n">myDataset</span>
+
+<span class="c1">#16S_start</span>
+<span class="n">RAW_FASTQ_FILE</span>      <span class="n">myData</span><span class="o">.</span><span class="n">fastq</span>
+<span class="n">ASCII_ENCODING</span>      <span class="n">ASCII_BASE_33</span>
+<span class="n">PRIMERS_FILE</span>        <span class="n">primers</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">BARCODES_MAP</span>        <span class="n">barcodes_map</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">BARCODES_MODE</span>       <span class="mi">2</span>
+<span class="n">METADATA_FILE</span>       <span class="n">metadata</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">PROCESSED</span>           <span class="kc">False</span>
+<span class="c1">#16S_end</span>
+</pre></div>
+</div>
+<p>Note that you <strong>must</strong> also specify the place where barcodes are to be
+found, i.e. either in the &#8220;<code class="docutils literal"><span class="pre">&gt;</span></code>” sequence ID lines (mode 1) or in
+the sequences themselves (mode 2). The <code class="docutils literal"><span class="pre">PROCESSED</span></code> flag tells the
+processing instance that the dataset needs to be processed into OTU
+tables.</p>
+<p>Your <code class="docutils literal"><span class="pre">barcodes_map.txt</span></code> file would look something like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">S1</span>      <span class="n">ATCGCTAGTA</span>
+<span class="n">S2</span>      <span class="n">TCGCTATATA</span>
+<span class="n">S3</span>      <span class="n">TCTACAGCGT</span>
+<span class="n">S4</span>      <span class="n">CGTACTCAGT</span>
+</pre></div>
+</div>
+<p>And your <code class="docutils literal"><span class="pre">primers.txt</span></code> file could be:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">CCTACGGGAGGCAGCAG</span>
+<span class="n">ATTACCGCGGCTGCT</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="case-2-raw-fastq-file-of-its-sequences-primers-and-barcodes-have-been-removed">
+<h3>Case 2: raw FASTQ file of ITS sequences, primers and barcodes have been removed<a class="headerlink" href="#case-2-raw-fastq-file-of-its-sequences-primers-and-barcodes-have-been-removed" title="Permalink to this headline">¶</a></h3>
+<p>In the case where the ’raw’ data has already had primers and barcodes
+removed (but is not yet de-multiplexed, i.e. all samples are still in
+the same FASTQ file), the sample IDs must be listed in the sequence ID
+lines of the FASTQ file. When the pipeline removes barcodes itself and
+replaces them with sample IDs, individual sequence reads for a given
+sampleID will be annotated as sampleID;1, sampleID;2, etc., where we
+note here that the BARCODES_SEPARATOR is ’;’. However, in a dataset
+where the barcodes have previously been removed, you will have to look
+into the FASTQ file to check the ’separator’ character. Your summary
+file would look something like this:</p>
+<div class="code bash highlight-default"><div class="highlight"><pre><span></span><span class="n">DATASET_ID</span>  <span class="n">myDataset</span>
+
+<span class="c1">#ITS_start</span>
+<span class="n">RAW_FASTQ_FILE</span>     <span class="n">myData</span><span class="o">.</span><span class="n">fastq</span>
+<span class="n">ASCII_ENCODING</span>     <span class="n">ASCII_BASE_33</span>
+<span class="n">PRIMERS_FILE</span>       <span class="kc">None</span>
+<span class="n">BARCODES_MAP</span>       <span class="kc">None</span>
+<span class="n">BARCODES_SEPARATOR</span> <span class="p">;</span>
+<span class="n">METADATA_FILE</span>      <span class="n">metadata</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">PROCESSED</span>          <span class="kc">False</span>
+<span class="c1">#ITS_end</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="case-3-multiple-demultiplexed-raw-fastq-or-fasta-files-of-16s-sequences-each-file-corresponding-to-a-single-sample">
+<h3>Case 3: multiple demultiplexed raw FASTQ or FASTA files of 16S sequences, each file corresponding to a single sample<a class="headerlink" href="#case-3-multiple-demultiplexed-raw-fastq-or-fasta-files-of-16s-sequences-each-file-corresponding-to-a-single-sample" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes sequencing data are available in a demultiplexed form, where
+the reads for each sample are split into separate files. Many datasets
+in the SRA, for example, are available in this form. In this case, you
+can create a <strong>two-column, tab-delimited file</strong> where the first column
+lists the filename and the second column lists the corresponding sample
+ID. Note that paths should be relative paths <em>within the current
+directory</em>, e.g. <code class="docutils literal"><span class="pre">datafiles/file1.txt</span></code> for files in a folder called <code class="docutils literal"><span class="pre">datafiles</span></code>
+within the current directory. In the summary file, the <code class="docutils literal"><span class="pre">RAW_FASTQ_FILE</span></code>
+line becomes <code class="docutils literal"><span class="pre">RAW_FASTQ_FILES</span></code> (plural), and instead refers to this
+filename. If your files are FASTA rather than FASTQ, simply use
+<code class="docutils literal"><span class="pre">RAW_FASTA_FILES</span></code> (also plural). For a filename fastq_filemap.txt, your
+summary file would look something like this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">DATASET_ID</span>  <span class="n">myDataset</span>
+
+<span class="c1">#16S_start</span>
+<span class="n">RAW_FASTQ_FILES</span>     <span class="n">fastq_filemap</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">ASCII_ENCODING</span>      <span class="n">ASCII_BASE_33</span>
+<span class="n">PRIMERS_FILE</span>        <span class="n">primers</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">METADATA_FILE</span>       <span class="n">metadata</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">PROCESSED</span>           <span class="kc">False</span>
+<span class="n">PRIMERS_FILE</span>        <span class="kc">None</span>
+<span class="n">BARCODES_MAP</span>        <span class="kc">None</span>
+<span class="c1">#16S_end</span>
+</pre></div>
+</div>
+<p>And your fastq_filemap.txt file would look something like this (note
+that white spaces in the following example correspond to a single tab
+character):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">SRR10001</span><span class="o">.</span><span class="n">fastq</span>  <span class="n">S1</span>
+<span class="n">SRR10002</span><span class="o">.</span><span class="n">fastq</span>  <span class="n">S2</span>
+<span class="n">SRR10003</span><span class="o">.</span><span class="n">fastq</span>  <span class="n">S3</span>
+<span class="n">SRR10004</span><span class="o">.</span><span class="n">fastq</span>  <span class="n">S4</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="case-4-multiple-demultiplexed-raw-paired-end-fastq-files-of-16s-sequences-which-need-merging">
+<h3>Case 4: multiple demultiplexed raw paired-end FASTQ files of 16S sequences which need merging<a class="headerlink" href="#case-4-multiple-demultiplexed-raw-paired-end-fastq-files-of-16s-sequences-which-need-merging" title="Permalink to this headline">¶</a></h3>
+<p>If your 16S FASTQ files are split into forward and reverse paired-end
+reads, the pipeline can merge them for you. Specify <code class="docutils literal"><span class="pre">MERGE_PAIRS</span></code> in the
+summary file, and also include the filename suffixes corresponding to
+forward and reverse reads. If your forward read fastq files were named
+<code class="docutils literal"><span class="pre">sampleID_L001_R1.fastq</span></code> and your reverse read fastq files were named
+<code class="docutils literal"><span class="pre">sampleID_L001_R2.fastq</span></code>, your summary file would look something like
+this:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">DATASET_ID</span>  <span class="n">myDataset</span>
+
+<span class="c1">#16S_start</span>
+<span class="n">RAW_FASTQ_FILES</span> <span class="n">fastq_filemap</span><span class="o">.</span><span class="n">txt</span>
+<span class="n">PRIMERS_FILE</span>    <span class="kc">None</span>
+<span class="n">BARCODES_MAP</span>    <span class="kc">None</span>
+<span class="n">MERGE_PAIRS</span>     <span class="kc">True</span>
+<span class="n">FWD_SUFFIX</span>      <span class="n">_L001_R1</span><span class="o">.</span><span class="n">fastq</span>
+<span class="n">REV_SUFFIX</span>      <span class="n">_L001_R2</span><span class="o">.</span><span class="n">fastq</span>
+<span class="n">PROCESSED</span>       <span class="kc">False</span>
+<span class="c1">#16S_end</span>
+</pre></div>
+</div>
+<p>And your fastq_filemap would look like</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">S1_L001_R1</span><span class="o">.</span><span class="n">fastq</span>  <span class="n">S1</span>
+<span class="n">S2_L001_R1</span><span class="o">.</span><span class="n">fastq</span>  <span class="n">S2</span>
+<span class="n">S3_L001_R1</span><span class="o">.</span><span class="n">fastq</span>  <span class="n">S3</span>
+<span class="n">S4_L001_R1</span><span class="o">.</span><span class="n">fastq</span>  <span class="n">S4</span>
+</pre></div>
+</div>
+<p>If you have de-multiplexed files (as in this example), the file names in
+your fastq_filemap.txt file should be the forward read fastq files.</p>
+<p>If instead you have non-demultiplexed sequences (i.e. two fastq files,
+one containing your forward reads and one containing your reverse
+reads), <code class="docutils literal"><span class="pre">RAW_FASTQ_FILE</span></code> should point to the file containing the forward
+reads.</p>
+</div>
+</div>
+<div class="section" id="list-of-16s-and-its-attributes">
+<h2>List of 16S and ITS attributes<a class="headerlink" href="#list-of-16s-and-its-attributes" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="77%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head"><strong>Attribute</strong></th>
+<th class="head"><strong>Description</strong></th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>RAW_FASTQ_FILE</td>
+<td>Raw FASTQ file name/path within the dataset directory</td>
+</tr>
+<tr class="row-odd"><td>RAW_FASTA_FILE</td>
+<td>Raw FASTA file name/path if raw data is in FASTA format</td>
+</tr>
+<tr class="row-even"><td>RAW_FASTQ_FILES</td>
+<td>For demultiplexed datasets where samples are separated</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>into separate FASTQ files. Filename of two column file</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>containing FASTQ filenames in first column and sample IDs</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>in the second column.</td>
+</tr>
+<tr class="row-even"><td>RAW_FASTA_FILES</td>
+<td>For demultiplexed datasets where samples are separated</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>into separate FASTA files. Filename of two column file</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>containing FASTA filenames in first column and sample IDs</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>in the second column.</td>
+</tr>
+<tr class="row-even"><td>ASCII_ENCODING</td>
+<td>ASCII quality encoding in FASTQ. Supports either</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>’ASCII_BASE_33’ or ’ASCII_BASE_64’. Set to 33 if unspecified.</td>
+</tr>
+<tr class="row-even"><td>PRIMERS_FILE</td>
+<td>Filename/path to primers file.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>required: If primers have already been removed, specify ’None’.</td>
+</tr>
+<tr class="row-even"><td>BARCODES_MAP</td>
+<td>Filename/path to barcodes map file.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>Tab-delimited file contains sampleIDs in first column</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>and barcode sequences in second column.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>required: If barcodes have already been removed, specify ’None’.</td>
+</tr>
+<tr class="row-even"><td>BARCODES_MODE</td>
+<td>’1’ = barcodes in sequence ID,</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>’2’ = barcodes in sequences themselves.</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>Required if BARCODES_MAP is not None.</td>
+</tr>
+<tr class="row-odd"><td>BARCODES_SEPARATOR</td>
+<td>Separator character. See description in Case 2 below.</td>
+</tr>
+<tr class="row-even"><td>METADATA_FILE</td>
+<td>Filename/path to metadata file.</td>
+</tr>
+<tr class="row-odd"><td>MERGE_PAIRS</td>
+<td>If need to merge paired-end reads, set to “True”.</td>
+</tr>
+<tr class="row-even"><td>FWD_SUFFIX</td>
+<td>Filename suffix of files with forward reads.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>Should include filename extension. If not specified, defaults to _1.fastq</td>
+</tr>
+<tr class="row-even"><td>REV_SUFFIX</td>
+<td>Filename suffix of files with reverse reads.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>Should include filename extension. If not specified, defaults to _2.fastq</td>
+</tr>
+<tr class="row-even"><td>PROCESSED</td>
+<td>True/False flag for whether data have already been processed.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>required: Set to ’False’ for processing to proceed.</td>
+</tr>
+<tr class="row-even"><td>TRIM_LENGTH</td>
+<td>Length to which all sequences should be trimmed.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>Defaults to 101 if unspecified.</td>
+</tr>
+<tr class="row-even"><td>QUALITY_TRIM</td>
+<td>Minimum quality score allowed.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>Sequences are truncated at the first base having quality</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>score less than value. Defaults to 25 if unspecified.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>If set to None, no quality filtering or trimming will be performed.</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>If both QUALITY_TRIM and MAX_ERRORS are included in summary file,</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>MAX_ERRORS will be ignored (even if QUALITY_TRIM = None).</td>
+</tr>
+<tr class="row-even"><td>MAX_ERRORS</td>
+<td>Maximum expected errors allowed.</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>After length trimming, sequences with more than MAX_ERRORS</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>expected errors are discarded. If not specified or if a TRIM_QUALITY value</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>is specified, defaults to quality trimming behavior, above.</td>
+</tr>
+<tr class="row-even"><td>MIN_COUNT</td>
+<td>Minimum sequence count in dereplication across</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>all samples. Defaults to 10 if unspecified (i.e. sequences with fewer than</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>10 occurrences in the entire dataset will not be considered downstream).</td>
+</tr>
+<tr class="row-odd"><td>OTU_SIMILARITY</td>
+<td>Integer specifying the percent similarity desired</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>in OTU clustering. Defaults to 97 if unspecified.</td>
+</tr>
+<tr class="row-odd"><td>RDP_CUTOFF</td>
+<td>Desired probability cut-off for Ribosomal Database Project</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>assignments. Assignments at each taxonomic level will be evaluated and</td>
+</tr>
+<tr class="row-odd"><td>&nbsp;</td>
+<td>those with a lower probability than this cutoff will be</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>labeled as unidentified. Defaults to 0.5 if unspecified.</td>
+</tr>
+<tr class="row-odd"><td>GG_ALIGN</td>
+<td>Specific to 16S sequences. True/False flag for whether</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>GreenGenes alignments are desired. Defaults to ’True’ if unspecified.</td>
+</tr>
+<tr class="row-odd"><td>UNITE_ALIGN</td>
+<td>Specific to ITS sequences. True/False flag for whether</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>UNITE alignments are desired. Defaults to ’True’ if unspecified.</td>
+</tr>
+<tr class="row-odd"><td>DBOTU</td>
+<td>Whether to perform distribution-based OTU calling.</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>Defaults to False if unspecified.</td>
+</tr>
+<tr class="row-odd"><td>ABUNDANCE_CRITERIA</td>
+<td>Abundance criteria for distribution-based OTU calling.</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>Defaults to 10 if unspecified.</td>
+</tr>
+<tr class="row-odd"><td>DISTANCE_CRITERIA</td>
+<td>Distance criteria for distribution-based OTU calling.</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>Defaults to 0.1 if unspecified.</td>
+</tr>
+<tr class="row-odd"><td>DBOTU_PVAL</td>
+<td>P value cutoff for distribution-based OTU calling.</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>Defaults to 0.0005 if unspecified.</td>
+</tr>
+<tr class="row-odd"><td>OUTDIR</td>
+<td>Full path to processing directory. Defaults</td>
+</tr>
+<tr class="row-even"><td>&nbsp;</td>
+<td>to /home/ubuntu/proc/ if not specified.</td>
+</tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id2" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td><a class="reference external" href="http://almlab.mit.edu/dbotu3.html">http://almlab.mit.edu/dbotu3.html</a></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Preparing your dataset for processing</a><ul>
+<li><a class="reference internal" href="#raw-data-files">Raw data files</a></li>
+<li><a class="reference internal" href="#summary-file">Summary file</a></li>
+<li><a class="reference internal" href="#summary-file-format-and-options">Summary file format and options</a><ul>
+<li><a class="reference internal" href="#input-file-s">Input file(s)</a></li>
+<li><a class="reference internal" href="#merging">Merging</a></li>
+<li><a class="reference internal" href="#de-multiplexing">De-multiplexing</a></li>
+<li><a class="reference internal" href="#primer-trimming">Primer trimming</a></li>
+<li><a class="reference internal" href="#quality-filtering">Quality filtering</a></li>
+<li><a class="reference internal" href="#length-trimming">Length trimming</a></li>
+<li><a class="reference internal" href="#dereplication">Dereplication</a></li>
+<li><a class="reference internal" href="#otu-calling">OTU calling</a></li>
+<li><a class="reference internal" href="#distribution-based-otu-calling">Distribution-based OTU calling</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sample-summary-files">Sample summary files</a><ul>
+<li><a class="reference internal" href="#case-1-raw-fastq-file-of-16s-sequences-still-includes-primers-and-barcodes">Case 1: raw FASTQ file of 16S sequences, still includes primers and barcodes</a></li>
+<li><a class="reference internal" href="#case-2-raw-fastq-file-of-its-sequences-primers-and-barcodes-have-been-removed">Case 2: raw FASTQ file of ITS sequences, primers and barcodes have been removed</a></li>
+<li><a class="reference internal" href="#case-3-multiple-demultiplexed-raw-fastq-or-fasta-files-of-16s-sequences-each-file-corresponding-to-a-single-sample">Case 3: multiple demultiplexed raw FASTQ or FASTA files of 16S sequences, each file corresponding to a single sample</a></li>
+<li><a class="reference internal" href="#case-4-multiple-demultiplexed-raw-paired-end-fastq-files-of-16s-sequences-which-need-merging">Case 4: multiple demultiplexed raw paired-end FASTQ files of 16S sequences which need merging</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#list-of-16s-and-its-attributes">List of 16S and ITS attributes</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="quickstart.html" title="previous chapter">Quickstart</a></li>
+      <li>Next: <a href="running.html" title="next chapter">Running the pipeline</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/preparing-dataset.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Thomas Gurry and Claire Duvallet.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/preparing-dataset.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
