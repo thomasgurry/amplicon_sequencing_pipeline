@@ -51,6 +51,7 @@
 from the set of raw dereplicated reads. These are a set of reads in
 FASTA format that appear in the file <code class="docutils literal"><span class="pre">datasetID.raw_dereplicated.fasta</span></code>
 and correspond to the set of unique sequences present in the raw data.</p>
+<a class="reference internal image-reference" href="_images/OTU_calling.png"><img alt="Schematic of OTU calling pipeline." src="_images/OTU_calling.png" style="width: 80%;" /></a>
 <div class="section" id="de-novo-otu-tables">
 <h3><em>de novo</em> OTU tables<a class="headerlink" href="#de-novo-otu-tables" title="Permalink to this headline">¶</a></h3>
 <p>The dereplicated reads are clustered to within the specified sequence
@@ -59,12 +60,12 @@ usearch. Individual reads are assigned either as the OTU centroid or as
 a match by usearch&#8217;s output. Centroids are labeled as <code class="docutils literal"><span class="pre">OTU_ID.0</span></code> and matches count from
 <code class="docutils literal"><span class="pre">OTU_ID.1</span></code> onwards. These are separate &#8220;oligotypes&#8221; within the OTU
 <code class="docutils literal"><span class="pre">OTU_ID</span></code>. These are written out to an oligotype table in
-<code class="docutils literal"><span class="pre">datasetID.otu_table.\*.denovo_oligotypes</span></code>.
+<code class="docutils literal"><span class="pre">datasetID.otu_table.*.denovo_oligotypes</span></code>.
 Note that this definition of &#8216;oligotype&#8217; is simply the unique sequences within
 each OTU cluster.</p>
 <p>All oligotype counts are then collapsed to their respective parent
 OTU, resulting in a fully <em>de novo</em> OTU table which can be found in the
-filename <code class="docutils literal"><span class="pre">datasetID.otu_table.\*.denovo</span> <span class="pre">where</span></code> <code class="docutils literal"><span class="pre">\*</span></code> gets replaced by the
+filename <code class="docutils literal"><span class="pre">datasetID.otu_table.*.denovo</span> <span class="pre">where</span></code> <code class="docutils literal"><span class="pre">*</span></code> gets replaced by the
 OTU similarity cut-off.</p>
 </div>
 <div class="section" id="distribution-based-otu-tables">
@@ -104,7 +105,7 @@ and considers the top 10 hits. Consensus assignments are then produced
 for the top 1, top 3, top 5 and top 10 hits (where a taxonomic level is
 only assigned a latin name if the top N hits from GreenGenes agree), and
 the corresponding OTU tables are output. Thus, the OTU table called
-<code class="docutils literal"><span class="pre">datasetID.otu_table.\*.gg.consensus10</span></code> contains latin names which are
+<code class="docutils literal"><span class="pre">datasetID.otu_table.*.gg.consensus10</span></code> contains latin names which are
 formed from a minimum consensus of the top 10 hits for each taxonomic
 level, where ’*’ gets replaced by the OTU similarity cut-off. Levels are
 left unidentified (e.g. <code class="docutils literal"><span class="pre">s__</span></code>) if the consensus requirement is not
@@ -124,7 +125,7 @@ clustered with the desired similarity cut-off using usearch, and
 appended to the GreenGenes/UNITE closed-reference table to produce a
 full, open-reference OTU table (which combines GreenGenes-referenced and
 <em>de novo</em> OTUs) at the desired similarity cut-off, with filename
-datasetID.otu_table.gg.*.open_ref.</p>
+<code class="docutils literal"><span class="pre">datasetID.otu_table.gg.*.open_ref</span></code>.</p>
 </div>
 </div>
 <div class="section" id="intermediate-files">

@@ -478,17 +478,18 @@ List of 16S and ITS attributes
 |                       | ``ASCII_BASE_33`` or ``ASCII_BASE_64``. Set to 33 if unspecified.             |
 +-----------------------+-------------------------------------------------------------------------------+
 | PRIMERS\_FILE         | | Filename/path to primers file.                                              |
-|                       | | **required**: If primers have already been removed, specify ``None``.       |
+|                       | | **Required**: If primers have already been removed, specify ``None``.       |
 +-----------------------+-------------------------------------------------------------------------------+
 | BARCODES\_MAP         | Filename/path to barcodes map file.                                           |
 |                       | Tab-delimited file contains sampleIDs in first column                         |
 |                       | and barcode sequences in second column.                                       |
-|                       | | **required**: If barcodes have already been removed, specify ``None``.      |
+|                       |                                                                               |
+|                       | **Required**: If barcodes have already been removed, specify ``None``.        |
 +-----------------------+-------------------------------------------------------------------------------+
 | BARCODES\_MODE        | | ``1`` = barcodes in sequence ID,                                            |
 |                       | | ``2`` = barcodes in sequences themselves.                                   |
 |                       | | ``3`` = barcodes in separate index file (beta)                              |
-|                       | | Required if ``BARCODES_MAP`` is not None.                                   |
+|                       | | **Required** if ``BARCODES_MAP`` is not None.                               |
 +-----------------------+-------------------------------------------------------------------------------+
 | BARCODES\_SEPARATOR   | Separator character. See description in                                       |
 |                       | `De-multiplexing`_                                                            |

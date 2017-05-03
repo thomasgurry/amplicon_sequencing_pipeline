@@ -105,7 +105,7 @@ should be tabs.</p>
 attributes, and are summarized in <a class="reference internal" href="#list-of-16s-and-its-attributes">List of 16S and ITS attributes</a>. These
 options are presented in roughly the same order as they are processed.</p>
 <div class="section" id="input-file-s">
-<h3>Input file(s)<a class="headerlink" href="#input-file-s" title="Permalink to this headline">¶</a></h3>
+<span id="input-files"></span><h3>Input file(s)<a class="headerlink" href="#input-file-s" title="Permalink to this headline">¶</a></h3>
 <p>The pipeline takes as input many kinds of raw data:</p>
 <p><strong>one FASTQ file.</strong> This file should contain all sequences for all of
 your samples. Sequences may still contain barcodes, or they can have
@@ -161,7 +161,7 @@ the full name of the FASTQ file(s) containing the forward reads.</p>
 <p>See <a class="reference internal" href="#case-4-multiple-demultiplexed-raw-paired-end-fastq-files-of-16s-sequences-which-need-merging">Case 4: multiple demultiplexed raw paired-end FASTQ files of 16S sequences which need merging</a> for an example.</p>
 </div>
 <div class="section" id="de-multiplexing">
-<h3>De-multiplexing<a class="headerlink" href="#de-multiplexing" title="Permalink to this headline">¶</a></h3>
+<span id="demultiplexing"></span><h3>De-multiplexing<a class="headerlink" href="#de-multiplexing" title="Permalink to this headline">¶</a></h3>
 <p>If your FASTQ file still contains the barcodes in the sequences, you
 will need to include <code class="docutils literal"><span class="pre">BARCODES_MAP</span></code> and <code class="docutils literal"><span class="pre">BARCODES_MODE</span></code> in your
 summary file. <strong>**Note that BARCODES_MAP is a required
@@ -427,7 +427,7 @@ reads.</p>
 </div>
 </div>
 <div class="section" id="list-of-16s-and-its-attributes">
-<h2>List of 16S and ITS attributes<a class="headerlink" href="#list-of-16s-and-its-attributes" title="Permalink to this headline">¶</a></h2>
+<span id="attribute-list"></span><h2>List of 16S and ITS attributes<a class="headerlink" href="#list-of-16s-and-its-attributes" title="Permalink to this headline">¶</a></h2>
 <table border="1" class="docutils">
 <colgroup>
 <col width="23%" />
@@ -440,199 +440,133 @@ reads.</p>
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td>RAW_FASTQ_FILE</td>
-<td>Raw FASTQ file name/path within the dataset directory</td>
+<td>Raw FASTQ file name/path within the dataset directory. If <code class="docutils literal"><span class="pre">MERGE_PAIRS</span></code> is
+<code class="docutils literal"><span class="pre">True</span></code>, this should be the full name of the forward read file.</td>
 </tr>
 <tr class="row-odd"><td>RAW_FASTA_FILE</td>
 <td>Raw FASTA file name/path if raw data is in FASTA format</td>
 </tr>
 <tr class="row-even"><td>RAW_FASTQ_FILES</td>
-<td>For demultiplexed datasets where samples are separated</td>
+<td>For demultiplexed datasets where samples are separated
+into separate FASTQ files. Filename of two column file
+containing FASTQ filenames in first column and sample IDs
+in the second column. If <code class="docutils literal"><span class="pre">MERGE_PAIRS</span></code> is <code class="docutils literal"><span class="pre">True</span></code>, these file
+names should be the full forward read file names.</td>
 </tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>into separate FASTQ files. Filename of two column file</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>containing FASTQ filenames in first column and sample IDs</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>in the second column.</td>
-</tr>
-<tr class="row-even"><td>RAW_FASTA_FILES</td>
-<td>For demultiplexed datasets where samples are separated</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>into separate FASTA files. Filename of two column file</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>containing FASTA filenames in first column and sample IDs</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>in the second column.</td>
+<tr class="row-odd"><td>RAW_FASTA_FILES</td>
+<td>For demultiplexed datasets where samples are separated
+into separate FASTA files. Filename of two column file
+containing FASTA filenames in first column and sample IDs
+in the second column.</td>
 </tr>
 <tr class="row-even"><td>ASCII_ENCODING</td>
-<td>ASCII quality encoding in FASTQ. Supports either</td>
+<td>ASCII quality encoding in FASTQ. Supports either
+<code class="docutils literal"><span class="pre">ASCII_BASE_33</span></code> or <code class="docutils literal"><span class="pre">ASCII_BASE_64</span></code>. Set to 33 if unspecified.</td>
 </tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>’ASCII_BASE_33’ or ’ASCII_BASE_64’. Set to 33 if unspecified.</td>
-</tr>
-<tr class="row-even"><td>PRIMERS_FILE</td>
-<td>Filename/path to primers file.</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>required: If primers have already been removed, specify ’None’.</td>
+<tr class="row-odd"><td>PRIMERS_FILE</td>
+<td><div class="first last line-block">
+<div class="line">Filename/path to primers file.</div>
+<div class="line"><strong>required</strong>: If primers have already been removed, specify <code class="docutils literal"><span class="pre">None</span></code>.</div>
+</div>
+</td>
 </tr>
 <tr class="row-even"><td>BARCODES_MAP</td>
-<td>Filename/path to barcodes map file.</td>
+<td>Filename/path to barcodes map file.
+Tab-delimited file contains sampleIDs in first column
+and barcode sequences in second column.
+| <strong>required</strong>: If barcodes have already been removed, specify <code class="docutils literal"><span class="pre">None</span></code>.</td>
 </tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>Tab-delimited file contains sampleIDs in first column</td>
+<tr class="row-odd"><td>BARCODES_MODE</td>
+<td><div class="first last line-block">
+<div class="line"><code class="docutils literal"><span class="pre">1</span></code> = barcodes in sequence ID,</div>
+<div class="line"><code class="docutils literal"><span class="pre">2</span></code> = barcodes in sequences themselves.</div>
+<div class="line"><code class="docutils literal"><span class="pre">3</span></code> = barcodes in separate index file (beta)</div>
+<div class="line">Required if <code class="docutils literal"><span class="pre">BARCODES_MAP</span></code> is not None.</div>
+</div>
+</td>
 </tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>and barcode sequences in second column.</td>
+<tr class="row-even"><td>BARCODES_SEPARATOR</td>
+<td>Separator character. See description in
+<a class="reference internal" href="#de-multiplexing">De-multiplexing</a></td>
 </tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>required: If barcodes have already been removed, specify ’None’.</td>
-</tr>
-<tr class="row-even"><td>BARCODES_MODE</td>
-<td>’1’ = barcodes in sequence ID,</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>’2’ = barcodes in sequences themselves.</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>Required if BARCODES_MAP is not None.</td>
-</tr>
-<tr class="row-odd"><td>BARCODES_SEPARATOR</td>
-<td>Separator character. See description in Case 2 below.</td>
-</tr>
-<tr class="row-even"><td>METADATA_FILE</td>
+<tr class="row-odd"><td>METADATA_FILE</td>
 <td>Filename/path to metadata file.</td>
 </tr>
-<tr class="row-odd"><td>MERGE_PAIRS</td>
-<td>If need to merge paired-end reads, set to “True”.</td>
+<tr class="row-even"><td>MERGE_PAIRS</td>
+<td>If need to merge paired-end reads, set to <code class="docutils literal"><span class="pre">True</span></code>.</td>
 </tr>
-<tr class="row-even"><td>FWD_SUFFIX</td>
-<td>Filename suffix of files with forward reads.</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>Should include filename extension. If not specified, defaults to _1.fastq</td>
+<tr class="row-odd"><td>FWD_SUFFIX</td>
+<td>Filename suffix of files with forward reads.
+Should include filename extension. If not specified, defaults to <code class="docutils literal"><span class="pre">_1.fastq</span></code></td>
 </tr>
 <tr class="row-even"><td>REV_SUFFIX</td>
-<td>Filename suffix of files with reverse reads.</td>
+<td>Filename suffix of files with reverse reads.
+Should include filename extension. If not specified, defaults to <code class="docutils literal"><span class="pre">_2.fastq</span></code></td>
 </tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>Should include filename extension. If not specified, defaults to _2.fastq</td>
-</tr>
-<tr class="row-even"><td>PROCESSED</td>
-<td>True/False flag for whether data have already been processed.</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>required: Set to ’False’ for processing to proceed.</td>
+<tr class="row-odd"><td>PROCESSED</td>
+<td>True/False flag for whether data have already been processed.      `
+required: Set to <code class="docutils literal"><span class="pre">False</span></code> for processing to proceed.</td>
 </tr>
 <tr class="row-even"><td>TRIM_LENGTH</td>
-<td>Length to which all sequences should be trimmed.</td>
+<td>Length to which all sequences should be trimmed.
+Defaults to 101 if unspecified.</td>
 </tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>Defaults to 101 if unspecified.</td>
-</tr>
-<tr class="row-even"><td>QUALITY_TRIM</td>
-<td>Minimum quality score allowed.</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>Sequences are truncated at the first base having quality</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>score less than value. Defaults to 25 if unspecified.</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>If set to None, no quality filtering or trimming will be performed.</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>If both QUALITY_TRIM and MAX_ERRORS are included in summary file,</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>MAX_ERRORS will be ignored (even if QUALITY_TRIM = None).</td>
+<tr class="row-odd"><td>QUALITY_TRIM</td>
+<td>Minimum quality score allowed.
+Sequences are truncated at the first base having quality
+score less than value. Defaults to 25 if unspecified.
+If set to None, no quality filtering or trimming will be performed.
+If both <code class="docutils literal"><span class="pre">QUALITY_TRIM</span></code> and <code class="docutils literal"><span class="pre">MAX_ERRORS</span></code> are included in summary file,
+<code class="docutils literal"><span class="pre">MAX_ERRORS</span></code> will be ignored (even if <code class="docutils literal"><span class="pre">QUALITY_TRIM</span></code> = <code class="docutils literal"><span class="pre">None</span></code>).</td>
 </tr>
 <tr class="row-even"><td>MAX_ERRORS</td>
-<td>Maximum expected errors allowed.</td>
+<td>Maximum expected errors allowed.
+After length trimming, sequences with more than <code class="docutils literal"><span class="pre">MAX_ERRORS</span></code>
+expected errors are discarded. If not specified or if a <code class="docutils literal"><span class="pre">QUALITY_TRIM</span></code> value
+is specified, defaults to quality trimming behavior, above.</td>
 </tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>After length trimming, sequences with more than MAX_ERRORS</td>
+<tr class="row-odd"><td>MIN_COUNT</td>
+<td>Minimum sequence count in dereplication across
+all samples. Defaults to 10 if unspecified (i.e. sequences with fewer than
+10 occurrences in the entire dataset will not be considered downstream).</td>
 </tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>expected errors are discarded. If not specified or if a TRIM_QUALITY value</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>is specified, defaults to quality trimming behavior, above.</td>
-</tr>
-<tr class="row-even"><td>MIN_COUNT</td>
-<td>Minimum sequence count in dereplication across</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>all samples. Defaults to 10 if unspecified (i.e. sequences with fewer than</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>10 occurrences in the entire dataset will not be considered downstream).</td>
-</tr>
-<tr class="row-odd"><td>OTU_SIMILARITY</td>
-<td>Integer specifying the percent similarity desired</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>in OTU clustering. Defaults to 97 if unspecified.</td>
+<tr class="row-even"><td>OTU_SIMILARITY</td>
+<td>Integer specifying the percent similarity desired
+in OTU clustering. Defaults to 97 if unspecified.</td>
 </tr>
 <tr class="row-odd"><td>RDP_CUTOFF</td>
-<td>Desired probability cut-off for Ribosomal Database Project</td>
+<td>Desired probability cut-off for Ribosomal Database Project
+assignments. Assignments at each taxonomic level will be evaluated and
+those with a lower probability than this cutoff will be
+labeled as unidentified. Defaults to 0.5 if unspecified.</td>
 </tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>assignments. Assignments at each taxonomic level will be evaluated and</td>
-</tr>
-<tr class="row-odd"><td>&nbsp;</td>
-<td>those with a lower probability than this cutoff will be</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>labeled as unidentified. Defaults to 0.5 if unspecified.</td>
-</tr>
-<tr class="row-odd"><td>GG_ALIGN</td>
-<td>Specific to 16S sequences. True/False flag for whether</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>GreenGenes alignments are desired. Defaults to ’True’ if unspecified.</td>
+<tr class="row-even"><td>GG_ALIGN</td>
+<td>Specific to 16S sequences. True/False flag for whether
+GreenGenes alignments are desired. Defaults to <code class="docutils literal"><span class="pre">True</span></code> if unspecified.</td>
 </tr>
 <tr class="row-odd"><td>UNITE_ALIGN</td>
-<td>Specific to ITS sequences. True/False flag for whether</td>
+<td>Specific to ITS sequences. True/False flag for whether
+UNITE alignments are desired. Defaults to <code class="docutils literal"><span class="pre">True</span></code> if unspecified.</td>
 </tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>UNITE alignments are desired. Defaults to ’True’ if unspecified.</td>
-</tr>
-<tr class="row-odd"><td>DBOTU</td>
-<td>Whether to perform distribution-based OTU calling.</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>Defaults to False if unspecified.</td>
+<tr class="row-even"><td>DBOTU</td>
+<td>Whether to perform distribution-based OTU calling.
+Defaults to <code class="docutils literal"><span class="pre">False</span></code> if unspecified.</td>
 </tr>
 <tr class="row-odd"><td>ABUNDANCE_CRITERIA</td>
-<td>Abundance criteria for distribution-based OTU calling.</td>
+<td>Abundance criteria for distribution-based OTU calling.
+Defaults to 10 if unspecified.</td>
 </tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>Defaults to 10 if unspecified.</td>
-</tr>
-<tr class="row-odd"><td>DISTANCE_CRITERIA</td>
-<td>Distance criteria for distribution-based OTU calling.</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>Defaults to 0.1 if unspecified.</td>
+<tr class="row-even"><td>DISTANCE_CRITERIA</td>
+<td>Distance criteria for distribution-based OTU calling.
+Defaults to 0.1 if unspecified.</td>
 </tr>
 <tr class="row-odd"><td>DBOTU_PVAL</td>
-<td>P value cutoff for distribution-based OTU calling.</td>
+<td>P value cutoff for distribution-based OTU calling.
+Defaults to 0.0005 if unspecified.</td>
 </tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>Defaults to 0.0005 if unspecified.</td>
-</tr>
-<tr class="row-odd"><td>OUTDIR</td>
-<td>Full path to processing directory. Defaults</td>
-</tr>
-<tr class="row-even"><td>&nbsp;</td>
-<td>to /home/ubuntu/proc/ if not specified.</td>
+<tr class="row-even"><td>OUTDIR</td>
+<td>Full path to processing directory. Defaults
+to /home/ubuntu/proc/ if not specified.</td>
 </tr>
 </tbody>
 </table>

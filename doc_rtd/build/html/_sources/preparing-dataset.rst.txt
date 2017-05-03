@@ -71,6 +71,8 @@ The following section will go through all available summary file
 attributes, and are summarized in `List of 16S and ITS attributes`_. These
 options are presented in roughly the same order as they are processed.
 
+.. _input-files:
+
 Input file(s)
 ~~~~~~~~~~~~~
 
@@ -140,6 +142,8 @@ Note that the files specified either in ``RAW_FASTQ_FILE`` or in the
 the full name of the FASTQ file(s) containing the forward reads.
 
 See `Case 4: multiple demultiplexed raw paired-end FASTQ files of 16S sequences which need merging`_ for an example.
+
+.. _demultiplexing:
 
 De-multiplexing
 ~~~~~~~~~~~~~~~
@@ -446,6 +450,7 @@ one containing your forward reads and one containing your reverse
 reads), ``RAW_FASTQ_FILE`` should point to the file containing the forward
 reads.
 
+.. _attribute-list:
 
 List of 16S and ITS attributes
 ------------------------------
@@ -453,134 +458,100 @@ List of 16S and ITS attributes
 +-----------------------+-------------------------------------------------------------------------------+
 | **Attribute**         | **Description**                                                               |
 +=======================+===============================================================================+
-| RAW\_FASTQ\_FILE      | Raw FASTQ file name/path within the dataset directory                         |
+| RAW\_FASTQ\_FILE      | Raw FASTQ file name/path within the dataset directory. If ``MERGE_PAIRS`` is  |
+|                       | ``True``, this should be the full name of the forward read file.              |
 +-----------------------+-------------------------------------------------------------------------------+
 | RAW\_FASTA\_FILE      | Raw FASTA file name/path if raw data is in FASTA format                       |
 +-----------------------+-------------------------------------------------------------------------------+
 | RAW\_FASTQ\_FILES     | For demultiplexed datasets where samples are separated                        |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | into separate FASTQ files. Filename of two column file                        |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | containing FASTQ filenames in first column and sample IDs                     |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | in the second column.                                                         |
+|                       | in the second column. If ``MERGE_PAIRS`` is ``True``, these file              |
+|                       | names should be the full forward read file names.                             |
 +-----------------------+-------------------------------------------------------------------------------+
 | RAW\_FASTA\_FILES     | For demultiplexed datasets where samples are separated                        |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | into separate FASTA files. Filename of two column file                        |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | containing FASTA filenames in first column and sample IDs                     |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | in the second column.                                                         |
 +-----------------------+-------------------------------------------------------------------------------+
 | ASCII\_ENCODING       | ASCII quality encoding in FASTQ. Supports either                              |
+|                       | ``ASCII_BASE_33`` or ``ASCII_BASE_64``. Set to 33 if unspecified.             |
 +-----------------------+-------------------------------------------------------------------------------+
-|                       | ’ASCII\_BASE\_33’ or ’ASCII\_BASE\_64’. Set to 33 if unspecified.             |
-+-----------------------+-------------------------------------------------------------------------------+
-| PRIMERS\_FILE         | Filename/path to primers file.                                                |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | required: If primers have already been removed, specify ’None’.               |
+| PRIMERS\_FILE         | | Filename/path to primers file.                                              |
+|                       | | **required**: If primers have already been removed, specify ``None``.       |
 +-----------------------+-------------------------------------------------------------------------------+
 | BARCODES\_MAP         | Filename/path to barcodes map file.                                           |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | Tab-delimited file contains sampleIDs in first column                         |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | and barcode sequences in second column.                                       |
+|                       | | **required**: If barcodes have already been removed, specify ``None``.      |
 +-----------------------+-------------------------------------------------------------------------------+
-|                       | required: If barcodes have already been removed, specify ’None’.              |
+| BARCODES\_MODE        | | ``1`` = barcodes in sequence ID,                                            |
+|                       | | ``2`` = barcodes in sequences themselves.                                   |
+|                       | | ``3`` = barcodes in separate index file (beta)                              |
+|                       | | Required if ``BARCODES_MAP`` is not None.                                   |
 +-----------------------+-------------------------------------------------------------------------------+
-| BARCODES\_MODE        | ’1’ = barcodes in sequence ID,                                                |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | ’2’ = barcodes in sequences themselves.                                       |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | Required if BARCODES\_MAP is not None.                                        |
-+-----------------------+-------------------------------------------------------------------------------+
-| BARCODES\_SEPARATOR   | Separator character. See description in Case 2 below.                         |
+| BARCODES\_SEPARATOR   | Separator character. See description in                                       |
+|                       | `De-multiplexing`_                                                            |
 +-----------------------+-------------------------------------------------------------------------------+
 | METADATA\_FILE        | Filename/path to metadata file.                                               |
 +-----------------------+-------------------------------------------------------------------------------+
-| MERGE\_PAIRS          | If need to merge paired-end reads, set to “True”.                             |
+| MERGE\_PAIRS          | If need to merge paired-end reads, set to ``True``.                           |
 +-----------------------+-------------------------------------------------------------------------------+
 | FWD\_SUFFIX           | Filename suffix of files with forward reads.                                  |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | Should include filename extension. If not specified, defaults to \_1.fastq    |
+|                       | Should include filename extension. If not specified, defaults to ``_1.fastq`` |
 +-----------------------+-------------------------------------------------------------------------------+
 | REV\_SUFFIX           | Filename suffix of files with reverse reads.                                  |
+|                       | Should include filename extension. If not specified, defaults to ``_2.fastq`` |
 +-----------------------+-------------------------------------------------------------------------------+
-|                       | Should include filename extension. If not specified, defaults to \_2.fastq    |
-+-----------------------+-------------------------------------------------------------------------------+
-| PROCESSED             | True/False flag for whether data have already been processed.                 |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | required: Set to ’False’ for processing to proceed.                           |
+| PROCESSED             | True/False flag for whether data have already been processed.      `          |
+|                       | required: Set to ``False`` for processing to proceed.                         |
 +-----------------------+-------------------------------------------------------------------------------+
 | TRIM\_LENGTH          | Length to which all sequences should be trimmed.                              |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | Defaults to 101 if unspecified.                                               |
 +-----------------------+-------------------------------------------------------------------------------+
 | QUALITY\_TRIM         | Minimum quality score allowed.                                                |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | Sequences are truncated at the first base having quality                      |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | score less than value. Defaults to 25 if unspecified.                         |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | If set to None, no quality filtering or trimming will be performed.           |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | If both QUALITY\_TRIM and MAX\_ERRORS are included in summary file,           |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | MAX\_ERRORS will be ignored (even if QUALITY\_TRIM = None).                   |
+|                       | If both ``QUALITY_TRIM`` and ``MAX_ERRORS`` are included in summary file,     |
+|                       | ``MAX_ERRORS`` will be ignored (even if ``QUALITY_TRIM`` = ``None``).         |
 +-----------------------+-------------------------------------------------------------------------------+
 | MAX\_ERRORS           | Maximum expected errors allowed.                                              |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | After length trimming, sequences with more than MAX\_ERRORS                   |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | expected errors are discarded. If not specified or if a TRIM\_QUALITY value   |
-+-----------------------+-------------------------------------------------------------------------------+
+|                       | After length trimming, sequences with more than ``MAX_ERRORS``                |
+|                       | expected errors are discarded. If not specified or if a ``QUALITY_TRIM`` value|
 |                       | is specified, defaults to quality trimming behavior, above.                   |
 +-----------------------+-------------------------------------------------------------------------------+
 | MIN\_COUNT            | Minimum sequence count in dereplication across                                |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | all samples. Defaults to 10 if unspecified (i.e. sequences with fewer than    |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | 10 occurrences in the entire dataset will not be considered downstream).      |
 +-----------------------+-------------------------------------------------------------------------------+
 | OTU\_SIMILARITY       | Integer specifying the percent similarity desired                             |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | in OTU clustering. Defaults to 97 if unspecified.                             |
 +-----------------------+-------------------------------------------------------------------------------+
 | RDP\_CUTOFF           | Desired probability cut-off for Ribosomal Database Project                    |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | assignments. Assignments at each taxonomic level will be evaluated and        |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | those with a lower probability than this cutoff will be                       |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | labeled as unidentified. Defaults to 0.5 if unspecified.                      |
 +-----------------------+-------------------------------------------------------------------------------+
 | GG\_ALIGN             | Specific to 16S sequences. True/False flag for whether                        |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | GreenGenes alignments are desired. Defaults to ’True’ if unspecified.         |
+|                       | GreenGenes alignments are desired. Defaults to ``True`` if unspecified.       |
 +-----------------------+-------------------------------------------------------------------------------+
 | UNITE\_ALIGN          | Specific to ITS sequences. True/False flag for whether                        |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | UNITE alignments are desired. Defaults to ’True’ if unspecified.              |
+|                       | UNITE alignments are desired. Defaults to ``True`` if unspecified.            |
 +-----------------------+-------------------------------------------------------------------------------+
 | DBOTU                 | Whether to perform distribution-based OTU calling.                            |
-+-----------------------+-------------------------------------------------------------------------------+
-|                       | Defaults to False if unspecified.                                             |
+|                       | Defaults to ``False`` if unspecified.                                         |
 +-----------------------+-------------------------------------------------------------------------------+
 | ABUNDANCE\_CRITERIA   | Abundance criteria for distribution-based OTU calling.                        |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | Defaults to 10 if unspecified.                                                |
 +-----------------------+-------------------------------------------------------------------------------+
 | DISTANCE\_CRITERIA    | Distance criteria for distribution-based OTU calling.                         |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | Defaults to 0.1 if unspecified.                                               |
 +-----------------------+-------------------------------------------------------------------------------+
 | DBOTU\_PVAL           | P value cutoff for distribution-based OTU calling.                            |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | Defaults to 0.0005 if unspecified.                                            |
 +-----------------------+-------------------------------------------------------------------------------+
 | OUTDIR                | Full path to processing directory. Defaults                                   |
-+-----------------------+-------------------------------------------------------------------------------+
 |                       | to /home/ubuntu/proc/ if not specified.                                       |
 +-----------------------+-------------------------------------------------------------------------------+
 
