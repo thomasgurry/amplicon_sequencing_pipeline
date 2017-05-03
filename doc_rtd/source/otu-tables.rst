@@ -12,9 +12,7 @@ and correspond to the set of unique sequences present in the raw data.
 
 .. image:: OTU_calling.png
    :alt: Schematic of OTU calling pipeline.
-   :width: 80.0%
-
-   Schematic of OTU calling pipeline.
+   :width: 80%
 
 *de novo* OTU tables
 ~~~~~~~~~~~~~~~~~~~~
@@ -25,13 +23,13 @@ usearch. Individual reads are assigned either as the OTU centroid or as
 a match by usearch's output. Centroids are labeled as ``OTU_ID.0`` and matches count from
 ``OTU_ID.1`` onwards. These are separate "oligotypes" within the OTU
 ``OTU_ID``. These are written out to an oligotype table in 
-``datasetID.otu_table.\*.denovo_oligotypes``.
+``datasetID.otu_table.*.denovo_oligotypes``.
 Note that this definition of 'oligotype' is simply the unique sequences within
 each OTU cluster.
 
 All oligotype counts are then collapsed to their respective parent
 OTU, resulting in a fully *de novo* OTU table which can be found in the
-filename ``datasetID.otu_table.\*.denovo where`` ``\*`` gets replaced by the
+filename ``datasetID.otu_table.*.denovo where`` ``*`` gets replaced by the
 OTU similarity cut-off.
 
 Distribution-based OTU tables
@@ -75,9 +73,9 @@ and considers the top 10 hits. Consensus assignments are then produced
 for the top 1, top 3, top 5 and top 10 hits (where a taxonomic level is
 only assigned a latin name if the top N hits from GreenGenes agree), and
 the corresponding OTU tables are output. Thus, the OTU table called
-``datasetID.otu_table.\*.gg.consensus10`` contains latin names which are
+``datasetID.otu_table.*.gg.consensus10`` contains latin names which are
 formed from a minimum consensus of the top 10 hits for each taxonomic
-level, where ’\*’ gets replaced by the OTU similarity cut-off. Levels are
+level, where ’*’ gets replaced by the OTU similarity cut-off. Levels are
 left unidentified (e.g. ``s__``) if the consensus requirement is not
 met.
 
@@ -98,7 +96,7 @@ clustered with the desired similarity cut-off using usearch, and
 appended to the GreenGenes/UNITE closed-reference table to produce a
 full, open-reference OTU table (which combines GreenGenes-referenced and
 *de novo* OTUs) at the desired similarity cut-off, with filename
-datasetID.otu\_table.gg.\*.open\_ref.
+``datasetID.otu_table.gg.*.open_ref``.
 
 Intermediate Files
 ------------------
