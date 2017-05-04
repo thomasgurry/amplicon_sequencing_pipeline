@@ -90,7 +90,7 @@ todo_include_todos = False
 
 # Try to make this show up on the RTD build on the internet
 # I think if I don't put anything here it'll be okay...
-
+html_style = '/default.css'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
