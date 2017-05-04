@@ -45,7 +45,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'amplicon_sequencing_pipeline_doc'
+project = u'Amplicon Sequencing Pipeline'
 copyright = u'2017, Thomas Gurry and Claire Duvallet'
 author = u'Thomas Gurry and Claire Duvallet'
 
@@ -107,7 +107,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'amplicon_sequencing_pipeline_docdoc'
+htmlhelp_basename = 'amplicon_sequencing_pipeline_doc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
