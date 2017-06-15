@@ -92,7 +92,7 @@ except:
     min_count = int(10)
 
 # Extract file locations
-primers_files, barcodes_map, raw_data_file, raw_file_type = pipeIO.parse_input_files(options, summary_obj, amplicon_type)
+primers_file, barcodes_map, raw_data_file, raw_data_summary_file, raw_file_type = pipeIO.parse_input_files(options, summary_obj, amplicon_type)
 
 # Construct output filenames from dataset ID
 fastq_trimmed_qual = working_directory + '/' + dataset_ID + '.raw_trimmed_qual.fastq'
@@ -270,15 +270,22 @@ if (options.split_by_barcodes == 'True' and options.primers_removed == 'True' an
 # Step 2.1 - demultiplex, i.e. sort by barcode
 if (options.split_by_barcodes == 'False' and options.multiple_raw_files == 'False'):
     mode, index_file, index_file_format = pipeIO.parse_barcodes_parameters(summary_obj, amplicon_type)
+    # If there is an index file specified, copy it over to the working directory
+    if index_file is not None:
+        os.system('cp ' + os.path.join(options.input_dir, index_file) + ' ' + os.path.join(working_directory, index_file))
     pool = mp.Pool(cpu_count)
     filenames = split_filenames
     newfilenames = [f + '.sb' for f in filenames]
     barcodes_map_vect = [barcodes_map]*len(filenames)
     mode_vect = [mode]*len(filenames)
+    index_file_vect = [index_file]*len(filenames)
+    index_format_vect = [index_file_format]*len(filenames)
     if raw_file_type == 'FASTQ':
-        pool.map(OTU.split_by_barcodes_FASTQ, zip(filenames, newfilenames, barcodes_map_vect, mode_vect))
+        pool.map(OTU.split_by_barcodes_FASTQ, zip(filenames, newfilenames, barcodes_map_vect, 
+                                                  mode_vect, index_file_vect, index_format_vect))
     elif raw_file_type == 'FASTA':
-        pool.map(OTU.split_by_barcodes_FASTA, zip(filenames, newfilenames, barcodes_map_vect, mode_vect))
+        pool.map(OTU.split_by_barcodes_FASTA, zip(filenames, newfilenames, barcodes_map_vect, 
+                                                  mode_vect, index_file_vect, index_format_vect))
     else:
         raise NameError("Can't determine whether the raw file is FASTQ or FASTA.  Check summary file contents.")
     pool.close()
@@ -605,12 +612,12 @@ try:
     # Get RDP cutoff from summary file
     if amplicon_type == "16S":
         try:
-            RDP_cutoff = summary_obj.attribute_value_16S['RDP_CUTOFF']
+            RDP_cutoff = float(summary_obj.attribute_value_16S['RDP_CUTOFF'])
         except:
             RDP_cutoff = 0.5
     elif amplicon_type == "ITS":
         try:
-            RDP_cutoff = summary_obj.attribute_value_ITS['RDP_CUTOFF']
+            RDP_cutoff = float(summary_obj.attribute_value_ITS['RDP_CUTOFF'])
         except:
             RDP_cutoff = 0.5
 
