@@ -41,7 +41,6 @@ Your summary file could look like this:
 
     #16S_start
     RAW_FASTQ_FILES     fastq_filemap.txt
-    PRIMERS_FILE        primers.txt
     PROCESSED           False
     PRIMERS_FILE        None
     BARCODES_MAP        None
