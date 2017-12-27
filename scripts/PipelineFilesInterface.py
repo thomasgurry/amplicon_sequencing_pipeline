@@ -58,13 +58,15 @@ def parse_input_files(options, summary_obj, amplicon_type):
     
     Returns
     -------
-    raw_data_summary_file   raw data file path (i.e. input_dir/raw_file), where
-                            raw_file is either one sequence file or a tab-delimited
-                            fastq-to-sample ID map.
+    raw_data_file           raw data file path (i.e. input_dir/raw_file)
+    raw_data_summary_file   file path to file with raw data to sample ID map
     raw_file_type           'FASTQ' or 'FASTA'
     barcodes_map            barcodes map file
-    primers_file           primers file
+    primers_files           primers file
     """
+
+    raw_data_file = None
+    raw_data_summary_file = None
 
     # Extract file locations
     if amplicon_type == '16S':
@@ -118,7 +120,7 @@ def parse_input_files(options, summary_obj, amplicon_type):
                         print("No filename of multiple raw FASTAs map provided.  Check contents of your raw data and summary file.")
                         raise NameError("Unable to retrieve raw sequencing files.")
 
-    return primers_file, barcodes_map, raw_data_file, raw_file_type
+    return primers_file, barcodes_map, raw_data_file, raw_data_summary_file, raw_file_type
 
 def parse_barcodes_parameters(summary_obj, amplicon_type):
     """
@@ -140,7 +142,10 @@ def parse_barcodes_parameters(summary_obj, amplicon_type):
                          or 'tab' - for use in 2.split_by_barcodes.py
     """
     if amplicon_type == '16S':
-        mode = summary_obj.attribute_value_16S['BARCODES_MODE']
+        if 'BARCODES_MODE' in summary_obj.attribute_value_16S:
+            mode = summary_obj.attribute_value_16S['BARCODES_MODE']
+        else:
+            mode = '2'
         # If barcodes are in index file, get those parameters
         if mode == '3':
             try:
@@ -155,7 +160,10 @@ def parse_barcodes_parameters(summary_obj, amplicon_type):
             index_file = None
             index_file_format = None
     elif amplicon_type == 'ITS':
-        mode = summary_obj.attribute_value_ITS['BARCODES_MODE']
+        if 'BARCODES_MODE' in summary_obj.attribute_value_ITS:
+            mode = summary_obj.attribute_value_ITS['BARCODES_MODE']
+        else:
+            mode = '2'
         # If barcodes are in index file, get those parameters
         if mode == '3':
             try:
