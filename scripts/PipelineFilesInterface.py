@@ -63,7 +63,7 @@ def parse_input_files(options, summary_obj, amplicon_type):
                             fastq-to-sample ID map.
     raw_file_type           'FASTQ' or 'FASTA'
     barcodes_map            barcodes map file
-    primers_files           primers file
+    primers_file           primers file
     """
 
     # Extract file locations
@@ -118,7 +118,7 @@ def parse_input_files(options, summary_obj, amplicon_type):
                         print("No filename of multiple raw FASTAs map provided.  Check contents of your raw data and summary file.")
                         raise NameError("Unable to retrieve raw sequencing files.")
 
-    return primers_files, barcodes_map, raw_data_file, raw_file_type
+    return primers_file, barcodes_map, raw_data_file, raw_file_type
 
 def parse_barcodes_parameters(summary_obj, amplicon_type):
     """
