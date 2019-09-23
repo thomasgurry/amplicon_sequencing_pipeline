@@ -1,3 +1,5 @@
+**This pipeline is no longer supported or maintained. We recommend migrating to [QIIME 2](www.qiime2.org) for 16S sequencing processing.**
+
 # 16S Amplicon Sequencing Processing Pipeline
 
 This repo contains scripts to process raw 16S or ITS sequencing data into processed data like dereplicated sequences, OTU tables, etc.
